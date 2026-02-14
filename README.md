@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Project README & Setup Guide
 
 ## Inventory Automation & Consumption Analytics System
@@ -42,3 +43,6 @@
 
 ### 24-Hour Hackathon Deliverable
 Built by [Your Name/Team] for Electrolyte Solutions.
+=======
+# JR-46-Invictus
+>>>>>>> 2af4ff65de9975e96d3b98c102ec904f0c220b23
