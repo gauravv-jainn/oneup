@@ -66,3 +66,38 @@ exports.getConsumptionTrend = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
+// Heatmap Data
+exports.getHeatmapData = async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT c.id, c.name, c.part_number, c.current_stock, c.monthly_required_quantity,
+                    COALESCE(SUM(ch.quantity_consumed), 0) as total_consumed
+             FROM components c
+             LEFT JOIN consumption_history ch ON c.id = ch.component_id
+             GROUP BY c.id, c.name, c.part_number, c.current_stock, c.monthly_required_quantity`
+        );
+
+        const data = result.rows.map(row => {
+            const stock = parseInt(row.current_stock);
+            const monthly = parseInt(row.monthly_required_quantity);
+            const percentage = monthly > 0 ? (stock / monthly) * 100 : 0;
+
+            let status = 'critical';
+            if (percentage >= 50) status = 'safe';
+            else if (percentage >= 20) status = 'warning';
+
+            return {
+                ...row,
+                total_consumed: parseInt(row.total_consumed),
+                stock_percentage: parseFloat(percentage.toFixed(1)),
+                status
+            };
+        });
+
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};

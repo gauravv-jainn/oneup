@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, CircuitBoard, Factory, BarChart3, ShoppingCart, FileSpreadsheet, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, CircuitBoard, Factory, BarChart3, ShoppingCart, FileSpreadsheet, LogOut, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
@@ -13,6 +13,7 @@ const Sidebar = () => {
         { name: 'Production', path: '/production', icon: Factory },
         { name: 'Analytics', path: '/analytics', icon: BarChart3 },
         { name: 'Procurement', path: '/procurement', icon: ShoppingCart },
+        { name: 'Future Orders', path: '/future-orders', icon: TrendingUp },
         { name: 'Import/Export', path: '/import-export', icon: FileSpreadsheet },
     ];
 
@@ -34,8 +35,8 @@ const Sidebar = () => {
                                 <Link
                                     to={link.path}
                                     className={`flex items-center px-4 py-3 rounded-lg transition-colors ${isActive
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                 >
                                     <Icon className="w-5 h-5 mr-3" />

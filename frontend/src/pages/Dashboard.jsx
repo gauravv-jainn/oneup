@@ -23,25 +23,20 @@ const Dashboard = () => {
                     api.get('/analytics/top-consumed')
                 ]);
 
-                const components = componentsRes.data;
-                const triggers = triggersRes.data;
+                const components = componentsRes.data || [];
+                const triggers = triggersRes.data || [];
 
-                const lowStockCount = components.filter(c => c.current_stock < (c.monthly_required_quantity * 0.2)).length;
-                const pendingTriggersCount = triggers.filter(t => t.status === 'pending').length;
-
-                // For production entries count, we might need a separate API or just estimate/skip for now functionality
-                // Let's mock or add endpoint if needed. For now, hardcode or fetch all production entries (could be heavy)
-                // Assuming we don't have a count endpoint, I'll set it to 0 or mock it.
-                // Actually, I can add a count endpoint later. For now, let's just display what we have.
+                const lowStockCount = Array.isArray(components) ? components.filter(c => c.current_stock < (c.monthly_required_quantity * 0.2)).length : 0;
+                const pendingTriggersCount = Array.isArray(triggers) ? triggers.filter(t => t.status === 'pending').length : 0;
 
                 setStats({
-                    totalComponents: components.length,
+                    totalComponents: Array.isArray(components) ? components.length : 0,
                     lowStock: lowStockCount,
-                    productionEntries: '-', // Placeholder
+                    productionEntries: '-',
                     pendingTriggers: pendingTriggersCount
                 });
 
-                setTopConsumed(topConsumedRes.data);
+                setTopConsumed(Array.isArray(topConsumedRes.data) ? topConsumedRes.data : []);
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);

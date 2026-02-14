@@ -8,6 +8,7 @@ import PCBs from './pages/PCBs';
 import Production from './pages/Production';
 import Analytics from './pages/Analytics';
 import Procurement from './pages/Procurement';
+import FutureOrders from './pages/FutureOrders';
 import ImportExport from './pages/ImportExport';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="/production" element={<Production />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/procurement" element={<Procurement />} />
+          <Route path="/future-orders" element={<FutureOrders />} />
           <Route path="/import-export" element={<ImportExport />} />
         </Route>
       </Route>

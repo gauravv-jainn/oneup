@@ -12,7 +12,7 @@ const createDatabase = async () => {
 
     try {
         await client.connect();
-        
+
         // Check if database exists
         const res = await client.query(`SELECT 1 FROM pg_database WHERE datname = '${process.env.DB_NAME}'`);
         if (res.rowCount === 0) {
@@ -93,7 +93,22 @@ const createTables = async () => {
         trigger_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         current_stock INTEGER,
         required_threshold INTEGER,
-        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'ordered', 'received'))
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'ordered', 'received')),
+        expected_delivery_date DATE,
+        quantity_ordered INTEGER,
+        supplier_name VARCHAR(255)
+    );
+
+    CREATE TABLE IF NOT EXISTS future_orders (
+        id SERIAL PRIMARY KEY,
+        order_name VARCHAR(255) NOT NULL,
+        pcb_type_id INTEGER REFERENCES pcb_types(id) ON DELETE CASCADE,
+        quantity_required INTEGER NOT NULL,
+        scheduled_production_date DATE NOT NULL,
+        delivery_date DATE NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending', 
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `;
 

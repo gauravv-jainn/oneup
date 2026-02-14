@@ -16,10 +16,10 @@ exports.getTriggers = async (req, res) => {
     }
 };
 
-// Update Trigger Status
+// Update Trigger Status & Delivery Details
 exports.updateTriggerStatus = async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, expected_delivery_date, quantity_ordered, supplier_name } = req.body;
 
     if (!['pending', 'ordered', 'received'].includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
@@ -27,17 +27,18 @@ exports.updateTriggerStatus = async (req, res) => {
 
     try {
         const result = await db.query(
-            'UPDATE procurement_triggers SET status = $1 WHERE id = $2 RETURNING *',
-            [status, id]
+            `UPDATE procurement_triggers 
+             SET status = $1, 
+                 expected_delivery_date = $2, 
+                 quantity_ordered = $3, 
+                 supplier_name = $4
+             WHERE id = $5 RETURNING *`,
+            [status, expected_delivery_date || null, quantity_ordered || null, supplier_name || null, id]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Trigger not found' });
         }
-
-        // Optional: If status is 'received', we could prompt (or auto) update stock?
-        // For this MVP, we just mark it. The user manually updates stock or we add a feature later.
-        // User logic: "Update procurement status to 'ordered' then 'received'".
 
         res.json(result.rows[0]);
     } catch (err) {
