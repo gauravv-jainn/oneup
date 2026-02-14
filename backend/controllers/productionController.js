@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const auditService = require('../services/auditService');
 
 exports.recordProduction = async (req, res) => {
     const { pcb_type_id, quantity_produced } = req.body;
@@ -83,6 +84,16 @@ exports.recordProduction = async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        // Audit Log
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        auditService.logAction(
+            req.user ? req.user.id : null, // Assuming you have middleware that sets req.user
+            'PRODUCTION_RUN',
+            `Produced ${quantity_produced} units of PCB ID ${pcb_type_id}. Entry ID: ${productionEntryId}`,
+            ip
+        );
+
         res.status(201).json({ message: 'Production recorded successfully', productionId: productionEntryId });
 
     } catch (err) {

@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Factory, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Factory, AlertTriangle, CheckCircle, Info, Package, Zap } from 'lucide-react';
+import { toast } from 'react-toastify';
+import Card from '../components/common/Card';
+import Button from '../components/common/Button';
+import Badge from '../components/common/Badge';
+import Loader from '../components/common/Loader';
 
 const Production = () => {
     const [pcbs, setPCBs] = useState([]);
@@ -8,8 +13,9 @@ const Production = () => {
     const [quantity, setQuantity] = useState(1);
     const [bom, setBOM] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [successMsg, setSuccessMsg] = useState('');
-    const [errorMsg, setErrorMsg] = useState('');
+
+    // Derived state for detailed PCB info
+    const selectedPCBDetails = pcbs.find(p => p.id === selectedPCB);
 
     useEffect(() => {
         fetchPCBs();
@@ -29,6 +35,7 @@ const Production = () => {
             setPCBs(res.data);
         } catch (error) {
             console.error(error);
+            toast.error("Failed to load PCB types");
         }
     };
 
@@ -38,17 +45,17 @@ const Production = () => {
             setBOM(res.data.components || []);
         } catch (error) {
             console.error(error);
+            toast.error("Failed to load BOM for selected PCB");
         }
     };
 
     const checkStock = () => {
+        if (!bom.length) return false;
         return bom.every(comp => comp.current_stock >= (comp.quantity_per_pcb * quantity));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSuccessMsg('');
-        setErrorMsg('');
         setLoading(true);
 
         try {
@@ -56,12 +63,12 @@ const Production = () => {
                 pcb_type_id: selectedPCB,
                 quantity_produced: parseInt(quantity)
             });
-            setSuccessMsg(`Production successful! Entry ID: ${res.data.productionId}`);
+            toast.success(`Production successful! Run ID: ${res.data.productionId || 'New'}`);
             // Refresh BOM stock
             fetchBOM(selectedPCB);
             setLoading(false);
         } catch (error) {
-            setErrorMsg(error.response?.data?.error || 'Production failed');
+            toast.error(error.response?.data?.error || 'Production failed');
             setLoading(false);
         }
     };
@@ -69,121 +76,167 @@ const Production = () => {
     const isStockSufficient = checkStock();
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
-                <Factory className="w-8 h-8 mr-3 text-blue-600" />
-                Record Production
-            </h1>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-primary">Production Run</h1>
+                    <p className="text-secondary mt-1">Initiate and track manufacturing batches</p>
+                </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column: Configuration Form */}
+                <div className="lg:col-span-5 space-y-6">
+                    <Card>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500">
+                                <Factory size={24} />
+                            </div>
+                            <h2 className="text-xl font-bold text-primary">Run Configuration</h2>
+                        </div>
+
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Select PCB Type</label>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-secondary">Select PCB Type</label>
                                 <select
-                                    className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="input w-full"
                                     value={selectedPCB}
                                     onChange={(e) => setSelectedPCB(e.target.value)}
                                     required
                                 >
-                                    <option value="">-- Select PCB --</option>
+                                    <option value="">-- Choose PCB to Produce --</option>
                                     {pcbs.map(p => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
                                 </select>
+                                {selectedPCBDetails && (
+                                    <p className="text-xs text-secondary bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-default">
+                                        {selectedPCBDetails.description}
+                                    </p>
+                                )}
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Quantity to Produce</label>
-                                <input
-                                    type="number" min="1"
-                                    className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(e.target.value)}
-                                    required
-                                />
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-secondary">Quantity to Produce</label>
+                                <div className="relative">
+                                    <input
+                                        type="number" min="1"
+                                        className="input w-full pr-12"
+                                        value={quantity}
+                                        onChange={(e) => setQuantity(e.target.value)}
+                                        required
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-secondary font-medium">
+                                        Units
+                                    </span>
+                                </div>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={!selectedPCB || quantity <= 0 || loading || !isStockSufficient}
-                                className={`w-full py-3 rounded-lg font-semibold text-white transition-all ${loading ? 'bg-slate-400 cursor-wait' :
-                                        !isStockSufficient ? 'bg-red-500 hover:bg-red-600 cursor-not-allowed opacity-75' :
-                                            'bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20'
-                                    }`}
-                            >
-                                {loading ? 'Processing...' : 'Record Production'}
-                            </button>
-
-                            {errorMsg && (
-                                <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-start">
-                                    <AlertTriangle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-                                    <span>{errorMsg}</span>
-                                </div>
-                            )}
-
-                            {successMsg && (
-                                <div className="bg-green-50 text-green-700 p-4 rounded-lg flex items-center">
-                                    <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                                    <span>{successMsg}</span>
-                                </div>
-                            )}
+                            <div className="pt-4">
+                                <Button
+                                    type="submit"
+                                    disabled={!selectedPCB || quantity <= 0 || loading || !isStockSufficient}
+                                    className="w-full justify-center py-3 text-lg"
+                                    variant={!isStockSufficient ? 'outline' : 'primary'} // Visual cue
+                                >
+                                    {loading ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader size="sm" className="mr-0" />
+                                            <span>Processing...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Zap size={20} className="mr-2" />
+                                            {isStockSufficient ? 'Start Production' : 'Insufficient Stock'}
+                                        </>
+                                    )}
+                                </Button>
+                                {!isStockSufficient && selectedPCB && (
+                                    <p className="text-center text-red-500 text-sm mt-3 font-medium">
+                                        Cannot proceed: Missing required components.
+                                    </p>
+                                )}
+                            </div>
                         </form>
-                    </div>
+                    </Card>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                        <h3 className="font-semibold text-slate-700 mb-4 flex items-center">
-                            <Info className="w-5 h-5 mr-2 text-slate-400" />
-                            Component Requirements Preview
-                        </h3>
+                {/* Right Column: Availability Check */}
+                <div className="lg:col-span-7">
+                    <Card className="h-full flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 rounded-lg bg-orange-500/10 text-orange-500">
+                                    <Package size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-primary">Material Validation</h2>
+                                    <p className="text-xs text-secondary">Real-time stock reservation check</p>
+                                </div>
+                            </div>
+                            {selectedPCB && bom.length > 0 && (
+                                <Badge variant={isStockSufficient ? "green" : "red"}>
+                                    {isStockSufficient ? "Ready for Production" : "Stock Shortage"}
+                                </Badge>
+                            )}
+                        </div>
 
                         {!selectedPCB ? (
-                            <p className="text-slate-400 italic text-center py-8">Select a PCB type to view requirements</p>
+                            <div className="flex-1 flex flex-col items-center justify-center text-secondary min-h-[300px] border-2 border-dashed border-default rounded-xl bg-slate-50/50 dark:bg-slate-800/20 m-4">
+                                <Info size={48} className="mb-4 opacity-30" />
+                                <p className="font-medium">Waiting for Selection</p>
+                                <p className="text-sm">Select a PCB type to validate component availability</p>
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-slate-50">
+                            <div className="flex-1 overflow-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-secondary sticky top-0 backdrop-blur-md">
                                         <tr>
-                                            <th className="px-3 py-2 text-left">Component</th>
-                                            <th className="px-3 py-2 text-right">Required</th>
-                                            <th className="px-3 py-2 text-right">Available</th>
-                                            <th className="px-3 py-2 text-center">Status</th>
+                                            <th className="px-4 py-3 rounded-tl-lg">Component</th>
+                                            <th className="px-4 py-3 text-right">Required</th>
+                                            <th className="px-4 py-3 text-right">Available</th>
+                                            <th className="px-4 py-3 text-center rounded-tr-lg">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {bom.map(c => {
-                                            const requiredTotal = c.quantity_per_pcb * quantity;
-                                            const isEnough = c.current_stock >= requiredTotal;
-                                            return (
-                                                <tr key={c.id}>
-                                                    <td className="px-3 py-2 font-medium">{c.name}</td>
-                                                    <td className="px-3 py-2 text-right font-mono">{requiredTotal}</td>
-                                                    <td className="px-3 py-2 text-right font-mono text-slate-600">{c.current_stock}</td>
-                                                    <td className="px-3 py-2 text-center">
-                                                        {isEnough ? (
-                                                            <span className="text-green-600">
-                                                                <CheckCircle className="w-4 h-4 mx-auto" />
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-red-500" title="Insufficient Stock">
-                                                                <AlertTriangle className="w-4 h-4 mx-auto" />
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                        {bom.length === 0 && (
-                                            <tr><td colSpan="4" className="text-center py-4 text-slate-400">No components defined for this PCB</td></tr>
+                                    <tbody className="divide-y divide-default">
+                                        {bom.length === 0 ? (
+                                            <tr><td colSpan="4" className="text-center py-8 text-secondary italic">No components defined in BOM for this PCB.</td></tr>
+                                        ) : (
+                                            bom.map(c => {
+                                                const requiredTotal = c.quantity_per_pcb * quantity;
+                                                const isEnough = c.current_stock >= requiredTotal;
+                                                return (
+                                                    <tr key={c.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-medium text-primary">{c.name}</div>
+                                                            <div className="text-xs text-secondary font-mono">{c.part_number}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-mono text-primary font-bold">
+                                                            {requiredTotal.toLocaleString()}
+                                                        </td>
+                                                        <td className={`px-4 py-3 text-right font-mono font-medium ${isEnough ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                                                            {c.current_stock.toLocaleString()}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            {isEnough ? (
+                                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                                                                    <CheckCircle size={16} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500">
+                                                                    <AlertTriangle size={16} />
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
                                         )}
                                     </tbody>
                                 </table>
                             </div>
                         )}
-                    </div>
+                    </Card>
                 </div>
             </div>
         </div>

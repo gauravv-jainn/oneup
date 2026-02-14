@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
-import Layout from './components/Layout';
+import Layout from './components/Layout/AppLayout';
 import PrivateRoute from './components/PrivateRoute';
 import Dashboard from './pages/Dashboard';
 import Components from './pages/Components';
@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics';
 import Procurement from './pages/Procurement';
 import FutureOrders from './pages/FutureOrders';
 import ImportExport from './pages/ImportExport';
+import Admin from './pages/Admin';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/procurement" element={<Procurement />} />
           <Route path="/future-orders" element={<FutureOrders />} />
           <Route path="/import-export" element={<ImportExport />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Route>
 

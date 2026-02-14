@@ -1,5 +1,54 @@
 const db = require('../config/db');
 
+// Dashboard Stats (KPIs)
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const [components, pcbs, production, lowStock, triggers] = await Promise.all([
+            db.query('SELECT COUNT(*) FROM components'),
+            db.query('SELECT COUNT(*) FROM pcb_types'),
+            db.query('SELECT SUM(quantity_produced) FROM production_entries WHERE produced_at >= CURRENT_DATE'),
+            db.query('SELECT COUNT(*) FROM components WHERE current_stock < (monthly_required_quantity * 0.2)'),
+            db.query("SELECT COUNT(*) FROM procurement_triggers WHERE status = 'pending'")
+        ]);
+
+        res.json({
+            totalComponents: parseInt(components.rows[0].count),
+            activePCBs: parseInt(pcbs.rows[0].count),
+            dailyProduction: parseInt(production.rows[0].sum) || 0,
+            lowStock: parseInt(lowStock.rows[0].count),
+            pendingOrders: parseInt(triggers.rows[0].count)
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+// Production Trend (Last 7 Days)
+exports.getProductionTrend = async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT TO_CHAR(produced_at, 'Dy') as day, SUM(quantity_produced) as count
+            FROM production_entries
+            WHERE produced_at >= CURRENT_DATE - INTERVAL '6 days'
+            GROUP BY TO_CHAR(produced_at, 'Dy'), DATE(produced_at)
+            ORDER BY DATE(produced_at) ASC
+        `);
+
+        // Ensure all days are represented or just send available data
+        // For simplicity, sending available data which frontend will map
+
+        const labels = result.rows.map(r => r.day);
+        const values = result.rows.map(r => parseInt(r.count));
+
+        res.json({ labels, values });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+
 // Consumption Summary
 exports.getConsumptionSummary = async (req, res) => {
     try {

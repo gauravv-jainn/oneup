@@ -29,6 +29,7 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/procurement', require('./routes/procurementRoutes'));
 app.use('/api/excel', require('./routes/excelRoutes'));
 app.use('/api/future-orders', require('./routes/futureOrderRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Basic Route
 app.get('/', (req, res) => {

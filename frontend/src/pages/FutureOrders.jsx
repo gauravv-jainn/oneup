@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Calendar, CheckCircle, AlertTriangle, AlertOctagon, Plus, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle, AlertTriangle, Plus, TrendingUp, Tag, Clock } from 'lucide-react';
+import { toast } from 'react-toastify';
+import Card from '../components/common/Card';
+import Button from '../components/common/Button';
+import Badge from '../components/common/Badge';
+import Modal from '../components/common/Modal';
+import Loader from '../components/common/Loader';
 
 const FutureOrders = () => {
     const [orders, setOrders] = useState([]);
@@ -35,6 +41,7 @@ const FutureOrders = () => {
             setPcbTypes(pcbsRes.data);
         } catch (error) {
             console.error(error);
+            toast.error("Failed to load orders");
         } finally {
             setLoading(false);
         }
@@ -42,7 +49,7 @@ const FutureOrders = () => {
 
     const handleCheckAvailability = async () => {
         if (!formData.pcb_type_id || !formData.quantity_required || !formData.scheduled_production_date) {
-            alert("Please fill all fields to check availability.");
+            toast.warn("Please fill all fields to check availability.");
             return;
         }
 
@@ -54,8 +61,10 @@ const FutureOrders = () => {
                 scheduled_production_date: formData.scheduled_production_date
             });
             setAvailability(res.data);
+            toast.info("Availability check complete");
         } catch (error) {
             console.error(error);
+            toast.error("Failed to check availability");
         } finally {
             setChecking(false);
         }
@@ -66,7 +75,7 @@ const FutureOrders = () => {
 
         // Validation
         if (!formData.order_name || !formData.pcb_type_id || !formData.quantity_required || !formData.scheduled_production_date || !formData.delivery_date) {
-            alert("Please fill all fields before creating the order.");
+            toast.warn("Please fill all fields before creating the order.");
             return;
         }
 
@@ -91,10 +100,10 @@ const FutureOrders = () => {
             });
             setAvailability(null);
             fetchData();
-            alert("Order created successfully!");
+            toast.success("Future order created successfully");
         } catch (error) {
             console.error(error);
-            alert("Failed to create order: " + (error.response?.data?.error || error.message));
+            toast.error("Failed to create order: " + (error.response?.data?.error || error.message));
         }
     };
 
@@ -103,9 +112,9 @@ const FutureOrders = () => {
         try {
             await api.post(`/future-orders/${id}/execute`);
             fetchData();
-            alert("Order executed successfully!");
+            toast.success("Order executed and stock deducted!");
         } catch (error) {
-            alert(error.response?.data?.error || "Execution failed");
+            toast.error(error.response?.data?.error || "Execution failed");
         }
     };
 
@@ -114,183 +123,199 @@ const FutureOrders = () => {
         try {
             await api.delete(`/future-orders/${id}`);
             fetchData();
+            toast.info("Order cancelled");
         } catch (error) {
             console.error(error);
+            toast.error("Failed to cancel order");
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'confirmed': return <Badge variant="green" className="gap-1"><CheckCircle size={12} /> Confirmed</Badge>;
+            case 'at_risk': return <Badge variant="red" className="gap-1"><AlertTriangle size={12} /> At Risk</Badge>;
+            case 'completed': return <Badge variant="gray" className="gap-1"><CheckCircle size={12} /> Completed</Badge>;
+            default: return <Badge variant="orange" className="gap-1"><Clock size={12} /> Pending</Badge>;
+        }
+    };
+
+    if (loading) return <Loader fullScreen />;
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-slate-800">Future Order Planning</h1>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                    <Plus className="w-4 h-4 mr-2" /> New Order
-                </button>
+                <div>
+                    <h1 className="text-3xl font-bold text-primary">Order Planning</h1>
+                    <p className="text-secondary mt-1">Manage future production schedules and reservations</p>
+                </div>
+                <Button onClick={() => setIsModalOpen(true)}>
+                    <Plus size={18} className="mr-2" /> New Order
+                </Button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
-                        <tr>
-                            <th className="px-6 py-3">Order Name</th>
-                            <th className="px-6 py-3">PCB Type</th>
-                            <th className="px-6 py-3">Qty</th>
-                            <th className="px-6 py-3">Scheduled / Delivery</th>
-                            <th className="px-6 py-3">Status</th>
-                            <th className="px-6 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {orders.map((order) => (
-                            <tr key={order.id} className="hover:bg-slate-50">
-                                <td className="px-6 py-3 font-medium text-slate-700">{order.order_name}</td>
-                                <td className="px-6 py-3 text-slate-600">{order.pcb_name}</td>
-                                <td className="px-6 py-3 font-mono text-blue-600">{order.quantity_required}</td>
-                                <td className="px-6 py-3 text-sm text-slate-500">
-                                    <div className="flex items-center"><Calendar className="w-3 h-3 mr-1" /> Prod: {new Date(order.scheduled_production_date).toLocaleDateString()}</div>
-                                    <div className="flex items-center mt-1"><CheckCircle className="w-3 h-3 mr-1 text-green-500" /> Del: {new Date(order.delivery_date).toLocaleDateString()}</div>
-                                </td>
-                                <td className="px-6 py-3">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                        order.status === 'at_risk' ? 'bg-red-100 text-red-800' :
-                                            order.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                                                'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                        {order.status.toUpperCase()}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-3 text-right space-x-2">
-                                    {order.status !== 'completed' && order.status !== 'cancelled' && (
-                                        <>
-                                            <button
-                                                onClick={() => handleExecute(order.id)}
-                                                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-                                                title="Execute Production"
-                                            >
-                                                Execute
-                                            </button>
-                                            <button
-                                                onClick={() => handleCancel(order.id)}
-                                                className="text-sm text-red-400 hover:text-red-600"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {/* Card Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {orders.map((order) => (
+                    <Card key={order.id} className="flex flex-col h-full group hover:shadow-lg transition-all border-l-4 border-l-transparent hover:border-l-blue-500">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="font-bold text-lg text-primary">{order.order_name}</h3>
+                                <div className="flex items-center text-sm text-secondary mt-1">
+                                    <Tag size={14} className="mr-1" />
+                                    {order.pcb_name}
+                                </div>
+                            </div>
+                            {getStatusBadge(order.status)}
+                        </div>
+
+                        <div className="flex-1 space-y-3 mb-6">
+                            <div className="flex items-center justify-between text-sm p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                <span className="text-secondary">Quantity</span>
+                                <span className="font-bold text-primary font-mono">{order.quantity_required} Units</span>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex items-center text-secondary">
+                                    <Calendar size={14} className="mr-2 text-blue-500" />
+                                    <span className="w-20">Production:</span>
+                                    <span className="text-primary font-medium">{new Date(order.scheduled_production_date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center text-secondary">
+                                    <Clock size={14} className="mr-2 text-green-500" />
+                                    <span className="w-20">Delivery:</span>
+                                    <span className="text-primary font-medium">{new Date(order.delivery_date).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-default flex justify-end gap-2">
+                            {order.status !== 'completed' && order.status !== 'cancelled' && (
+                                <>
+                                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => handleCancel(order.id)}>
+                                        Cancel
+                                    </Button>
+                                    <Button size="sm" onClick={() => handleExecute(order.id)} className="bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20">
+                                        Execute Run
+                                    </Button>
+                                </>
+                            )}
+                            {order.status === 'completed' && (
+                                <span className="text-xs text-secondary italic flex items-center">
+                                    Order fulfilled <CheckCircle size={12} className="ml-1" />
+                                </span>
+                            )}
+                        </div>
+                    </Card>
+                ))}
+                {orders.length === 0 && (
+                    <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-default rounded-xl bg-slate-50/30">
+                        <TrendingUp size={48} className="mx-auto mb-4 opacity-50" />
+                        <p>No active orders found.</p>
+                        <p className="text-sm">Create a new order to start planning.</p>
+                    </div>
+                )}
             </div>
 
             {/* Create Order Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 animate-in fade-in zoom-in duration-200">
-                        <h3 className="text-xl font-bold text-slate-800 mb-4">Create Future Order</h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Order Name</label>
-                                <input
-                                    type="text"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.order_name}
-                                    onChange={(e) => setFormData({ ...formData, order_name: e.target.value })}
-                                    placeholder="e.g. Client X May Batch"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">PCB Type</label>
-                                <select
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.pcb_type_id}
-                                    onChange={(e) => setFormData({ ...formData, pcb_type_id: e.target.value })}
-                                >
-                                    <option value="">Select PCB</option>
-                                    {pcbTypes.map(pcb => <option key={pcb.id} value={pcb.id}>{pcb.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Quantity Required</label>
-                                <input
-                                    type="number"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.quantity_required}
-                                    onChange={(e) => setFormData({ ...formData, quantity_required: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Scheduled Production</label>
-                                <input
-                                    type="date"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.scheduled_production_date}
-                                    onChange={(e) => setFormData({ ...formData, scheduled_production_date: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Delivery Date</label>
-                                <input
-                                    type="date"
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.delivery_date}
-                                    onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-                                />
-                            </div>
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Create Future Order"
+            >
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-secondary">Order Name</label>
+                            <input
+                                type="text"
+                                className="input w-full"
+                                value={formData.order_name}
+                                onChange={(e) => setFormData({ ...formData, order_name: e.target.value })}
+                                placeholder="e.g. Client X May Batch"
+                            />
                         </div>
-
-                        <div className="mb-6">
-                            <button
-                                onClick={handleCheckAvailability}
-                                disabled={checking}
-                                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg flex justify-center items-center transition"
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-secondary">PCB Type</label>
+                            <select
+                                className="input w-full"
+                                value={formData.pcb_type_id}
+                                onChange={(e) => setFormData({ ...formData, pcb_type_id: e.target.value })}
                             >
-                                {checking ? 'Calculating...' : 'Check Stock Availability'}
-                            </button>
+                                <option value="">Select PCB</option>
+                                {pcbTypes.map(pcb => <option key={pcb.id} value={pcb.id}>{pcb.name}</option>)}
+                            </select>
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-secondary">Quantity</label>
+                            <input
+                                type="number"
+                                className="input w-full"
+                                value={formData.quantity_required}
+                                onChange={(e) => setFormData({ ...formData, quantity_required: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-secondary">Scheduled Production</label>
+                            <input
+                                type="date"
+                                className="input w-full"
+                                value={formData.scheduled_production_date}
+                                onChange={(e) => setFormData({ ...formData, scheduled_production_date: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-secondary">Delivery Date</label>
+                            <input
+                                type="date"
+                                className="input w-full"
+                                value={formData.delivery_date}
+                                onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="border-t border-default pt-4">
+                        <Button
+                            variant="secondary"
+                            onClick={handleCheckAvailability}
+                            disabled={checking}
+                            className="w-full justify-center mb-4"
+                        >
+                            {checking ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader size="sm" />
+                                    <span>Analyzing...</span>
+                                </div>
+                            ) : 'Check Stock Availability'}
+                        </Button>
 
                         {availability && (
-                            <div className={`mb-6 p-4 rounded-lg border ${availability.can_fulfill ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                            <div className={`mb-4 p-4 rounded-lg border ${availability.can_fulfill ? 'bg-green-50/50 border-green-200 dark:bg-green-900/10 dark:border-green-900' : 'bg-red-50/50 border-red-200 dark:bg-red-900/10 dark:border-red-900'}`}>
                                 <div className="flex items-center mb-3">
                                     {availability.can_fulfill ?
                                         <CheckCircle className="w-5 h-5 text-green-600 mr-2" /> :
                                         <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
                                     }
-                                    <h4 className={`font-bold ${availability.can_fulfill ? 'text-green-800' : 'text-red-800'}`}>
-                                        {availability.can_fulfill ? 'Order can be fulfilled' : 'Stock Shortage Detected'}
+                                    <h4 className={`font-bold ${availability.can_fulfill ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                        {availability.can_fulfill ? 'Feasible' : 'Stock Shortage Detected'}
                                     </h4>
                                 </div>
 
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
+                                <div className="max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                    <table className="w-full text-xs text-left">
                                         <thead>
-                                            <tr className="border-b border-black/5">
-                                                <th className="pb-2">Component</th>
-                                                <th className="pb-2">Required</th>
-                                                <th className="pb-2">Projected Available</th>
-                                                <th className="pb-2">Status</th>
+                                            <tr>
+                                                <th className="pb-1 text-secondary">Component</th>
+                                                <th className="pb-1 text-right text-secondary">Required</th>
+                                                <th className="pb-1 text-right text-secondary">Avail</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {availability.components.map(comp => (
-                                                <tr key={comp.component_id} className="border-b border-black/5 last:border-0">
-                                                    <td className="py-2">{comp.name}</td>
-                                                    <td className="py-2 font-mono">{comp.required_quantity}</td>
-                                                    <td className="py-2 font-mono">
+                                                <tr key={comp.component_id} className="border-b border-black/5 last:border-0 border-default">
+                                                    <td className="py-1.5 text-primary">{comp.name}</td>
+                                                    <td className="py-1.5 text-right font-mono text-primary">{comp.required_quantity}</td>
+                                                    <td className={`py-1.5 text-right font-mono font-bold ${comp.status === 'shortage' ? 'text-red-600' : 'text-green-600'}`}>
                                                         {comp.projected_available}
-                                                        <span className="text-xs text-slate-500 ml-1">
-                                                            (Curr: {comp.current_stock} + Inc: {comp.incoming_stock} - Res: {comp.reserved_stock})
-                                                        </span>
-                                                    </td>
-                                                    <td className={`py-2 font-bold ${comp.status === 'shortage' ? 'text-red-600' : 'text-green-600'}`}>
-                                                        {comp.status === 'shortage' ? `Shortfall: ${comp.shortfall}` : 'OK'}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -298,31 +323,27 @@ const FutureOrders = () => {
                                     </table>
                                 </div>
                                 {!availability.can_fulfill && (
-                                    <p className="mt-3 text-xs text-red-600">
-                                        Recommendation: Create procurement orders for shortfall items with delivery before {formData.scheduled_production_date}.
+                                    <p className="mt-2 text-xs text-red-600 dark:text-red-400 italic">
+                                        * Procurement needed for shortage items.
                                     </p>
                                 )}
                             </div>
                         )}
 
-                        <div className="flex justify-end space-x-3">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-                            >
+                        <div className="flex justify-end gap-3 pt-2">
+                            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
                                 Cancel
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleSubmit}
-                                className={`px-4 py-2 text-white rounded-lg transition ${availability && !availability.can_fulfill ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'
-                                    }`}
+                                className={availability && !availability.can_fulfill ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}
                             >
-                                {availability && !availability.can_fulfill ? 'Confirm Anyway (At Risk)' : 'Confirm Order'}
-                            </button>
+                                {availability && !availability.can_fulfill ? 'Create (At Risk)' : 'Confirm Order'}
+                            </Button>
                         </div>
                     </div>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };

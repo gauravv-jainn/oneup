@@ -2,6 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const auditService = require('../services/auditService');
 
 // Register User (Admin) - In a real app, this might be protected or disabled after first admin
 exports.register = async (req, res) => {
@@ -65,6 +66,10 @@ exports.login = async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
+
+        // Audit Log
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        auditService.logAction(user.id, 'LOGIN', 'User logged in successfully', ip);
 
         res.json({
             message: 'Login successful',
