@@ -100,7 +100,7 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
                 {/* Theme Toggle */}
                 <button
                     onClick={toggleTheme}
-                    className="relative w-12 h-7 md:w-14 md:h-8 rounded-full bg-slate-200 dark:bg-slate-800 transition-colors flex items-center px-1 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="relative w-12 h-7 md:w-14 md:h-8 rounded-full bg-blue-100 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 transition-colors flex items-center px-1 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                     title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
                     <div

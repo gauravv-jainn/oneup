@@ -201,7 +201,7 @@ const FutureOrders = () => {
 
     const handleCancel = async (id) => {
         try {
-            await api.delete(`/future-orders/${id}/cancel`);
+            await api.put(`/future-orders/${id}/cancel`);
             toast.info("Order cancelled");
             fetchData();
         } catch (err) {

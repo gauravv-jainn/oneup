@@ -27,7 +27,7 @@ const CriticalStockPanel = ({ items }) => {
                         </div>
                         <div className="space-y-3">
                             {critical.slice(0, 4).map((item, index) => {
-                                const stockPercent = Math.min(100, Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100));
+                                const stockPercent = Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100);
                                 return (
                                     <div key={index} className="group">
                                         <div className="flex justify-between items-center mb-1">
@@ -61,7 +61,7 @@ const CriticalStockPanel = ({ items }) => {
                         </div>
                         <div className="space-y-3">
                             {low.slice(0, 4).map((item, index) => {
-                                const stockPercent = Math.min(100, Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100));
+                                const stockPercent = Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100);
                                 return (
                                     <div key={index} className="group">
                                         <div className="flex justify-between items-center mb-1">
