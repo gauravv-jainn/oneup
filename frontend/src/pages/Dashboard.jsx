@@ -124,10 +124,10 @@ const Dashboard = () => {
 
             {/* Middle Section: Heatmap & Critical Stock */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 lg:h-[450px]">
+                <div className="lg:col-span-2">
                     <HeatmapPanel data={data.heatmapData} />
                 </div>
-                <div className="lg:col-span-1 lg:h-[450px]">
+                <div className="lg:col-span-1">
                     <CriticalStockPanel items={data.criticalStock} />
                 </div>
             </div>

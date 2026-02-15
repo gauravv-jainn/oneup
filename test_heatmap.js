@@ -3,7 +3,7 @@ const axios = require('axios');
 async function checkHeatmap() {
     try {
         // 1. Login
-        const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
+        const loginRes = await axios.post('http://localhost:5002/api/auth/login', {
             username: 'admin',
             password: 'password123'
         });
@@ -11,7 +11,7 @@ async function checkHeatmap() {
         console.log('Login successful');
 
         // 2. Fetch Heatmap Data
-        const heatmapRes = await axios.get('http://localhost:5000/api/analytics/heatmap-data', {
+        const heatmapRes = await axios.get('http://localhost:5002/api/analytics/heatmap-data', {
             headers: { Authorization: `Bearer ${token}` }
         });
 

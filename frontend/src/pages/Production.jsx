@@ -198,12 +198,12 @@ const Production = () => {
                         ) : (
                             <div className="flex-1 overflow-auto">
                                 <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-secondary sticky top-0 backdrop-blur-md">
+                                    <thead className="bg-slate-100 dark:bg-slate-800/80 text-xs uppercase font-semibold text-secondary sticky top-0 backdrop-blur-md z-10">
                                         <tr>
-                                            <th className="px-4 py-3 rounded-tl-lg">Component</th>
-                                            <th className="px-4 py-3 text-right">Required</th>
-                                            <th className="px-4 py-3 text-right">Available</th>
-                                            <th className="px-4 py-3 text-center rounded-tr-lg">Status</th>
+                                            <th className="px-4 py-3 rounded-tl-lg font-bold text-slate-500 dark:text-slate-400">Component</th>
+                                            <th className="px-4 py-3 text-right font-bold text-slate-500 dark:text-slate-400">Required</th>
+                                            <th className="px-4 py-3 text-right font-bold text-slate-500 dark:text-slate-400">Available</th>
+                                            <th className="px-4 py-3 text-center rounded-tr-lg font-bold text-slate-500 dark:text-slate-400">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-default">
@@ -222,17 +222,17 @@ const Production = () => {
                                                         <td className="px-4 py-3 text-right font-mono text-primary font-bold">
                                                             {requiredTotal.toLocaleString()}
                                                         </td>
-                                                        <td className={`px-4 py-3 text-right font-mono font-medium ${isEnough ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                                                        <td className={`px-4 py-3 text-right font-mono font-bold text-lg ${isEnough ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                             {c.current_stock.toLocaleString()}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             {isEnough ? (
-                                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                                                                    <CheckCircle size={16} />
+                                                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                                                                    <CheckCircle size={22} strokeWidth={2.5} />
                                                                 </div>
                                                             ) : (
-                                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500">
-                                                                    <AlertTriangle size={16} />
+                                                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 text-red-500">
+                                                                    <AlertTriangle size={20} strokeWidth={2.5} />
                                                                 </div>
                                                             )}
                                                         </td>

@@ -34,29 +34,30 @@ const HeatmapPanel = ({ data }) => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0 rounded-lg custom-scrollbar pr-2">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+            <div className="flex-1 min-h-0 rounded-lg pr-2">
+                <div className="flex flex-wrap gap-2 content-start">
                     {(!data || data.length === 0) && (
-                        <div className="col-span-full flex items-center justify-center text-secondary text-sm py-8 opacity-60">
+                        <div className="w-full flex items-center justify-center text-secondary text-sm py-8 opacity-60">
                             No heatmap data available yet.
                         </div>
                     )}
                     {data.map((item, index) => {
-                        const stockPercent = Math.min(100, item.stock_percentage || Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100));
+                        // Remove the 100% cap
+                        const stockPercent = item.stock_percentage || Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100);
 
                         return (
                             <div
                                 key={index}
                                 className={`
                                     rounded-lg p-2.5 flex flex-col justify-between text-white shadow-sm cursor-pointer
-                                    transition-all hover:scale-105 hover:z-10 hover:shadow-lg min-h-[70px]
-                                    active:scale-95
+                                    transition-all hover:scale-105 hover:z-10 hover:shadow-lg
+                                    active:scale-95 flex-grow basis-[120px] max-w-[200px] min-h-[80px]
                                     ${getCellColor(stockPercent)}
                                 `}
                                 title={`${item.name}: ${item.current_stock} units (${stockPercent}%) — Click to view details`}
                                 onClick={() => handleBlockClick(item)}
                             >
-                                <span className="text-[10px] font-semibold truncate opacity-90 leading-tight">{item.name}</span>
+                                <span className="text-[10px] font-semibold truncate opacity-90 leading-tight block w-full">{item.name}</span>
                                 <div className="flex items-end justify-between mt-1">
                                     <span className="text-lg font-bold leading-none">{stockPercent}%</span>
                                     <span className="text-[9px] opacity-70">{item.current_stock}u</span>

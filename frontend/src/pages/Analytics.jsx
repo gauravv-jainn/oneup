@@ -56,6 +56,8 @@ const Analytics = () => {
             setConsumptionTrend(trendRes.data || []);
             setTopConsumed(topRes.data || []);
             setConsumptionSummary(summaryRes.data || []);
+            setConsumptionSummary(summaryRes.data || []);
+            console.log("Heatmap Data Received:", heatRes.data);
             setHeatmapData(heatRes.data || []);
         } catch (err) {
             console.error(err);
@@ -114,13 +116,16 @@ const Analytics = () => {
     }));
 
     // Prepare heatmap data for treemap
+    // Logic: Size based on Monthly Requirement (Market Cap style)
     const treemapData = heatmapData.map(item => ({
         name: item.name,
-        size: Math.max(parseInt(item.total_consumed) || 1, 1),
-        stock_percentage: Math.min(100, item.stock_percentage),
+        size: Math.max(parseInt(item.monthly_required_quantity) || 1, 1), // Use Monthly Req for area
+        current_stock: parseInt(item.current_stock),
+        monthly_required_quantity: parseInt(item.monthly_required_quantity),
+        stock_percentage: item.stock_percentage,
         status: item.status,
         fill: item.status === 'critical' ? '#ef4444' : item.status === 'warning' ? '#f59e0b' : '#10b981'
-    }));
+    })).sort((a, b) => b.size - a.size); // Sort descending by size for better packing
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -206,24 +211,28 @@ const Analytics = () => {
             </div>
 
             {/* Inventory Heatmap Treemap */}
-            <Card className="p-6">
-                <h3 className="text-lg font-bold text-primary mb-4">Inventory Health Map</h3>
-                <div className="flex gap-4 mb-4 text-xs">
-                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-green-500 rounded"></span> Healthy (≥50%)</div>
-                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-yellow-500 rounded"></span> Low (20-50%)</div>
-                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-500 rounded"></span> Critical (&lt;20%)</div>
+            <Card className="flex flex-col h-[600px] overflow-hidden">
+                <div className="p-4 border-b border-default flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 z-10 transition-colors duration-200">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Inventory Health Map</h3>
+                    <div className="flex gap-3 text-xs font-medium text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-green-500 rounded-sm"></span> Healthy (≥50%)</div>
+                        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-amber-500 rounded-sm"></span> Low (20-50%)</div>
+                        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-red-500 rounded-sm"></span> Critical (&lt;20%)</div>
+                    </div>
                 </div>
-                <div className="flex flex-col gap-4">
-                    {/* Heatmap Visualization */}
+
+                <div className="flex-1 min-h-0 relative bg-slate-100 dark:bg-slate-900">
                     {treemapData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={350}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <Treemap
                                 data={treemapData}
                                 dataKey="size"
                                 nameKey="name"
+                                aspectRatio={1}
+                                isAnimationActive={false}
                                 content={(props) => {
                                     const { x, y, width, height, name, fill, stock_percentage, status } = props;
-                                    if (width < 30 || height < 25) return null;
+                                    if (width < 2 || height < 2) return null; // Skip tiny blocks
                                     return (
                                         <g
                                             onMouseEnter={() => setHoveredNode({ name, stock_percentage, status, fill, ...props })}
@@ -233,17 +242,33 @@ const Analytics = () => {
                                             <rect
                                                 x={x} y={y} width={width} height={height}
                                                 fill={fill}
-                                                stroke="#1e293b"
-                                                strokeWidth={2}
-                                                rx={4}
-                                                className="transition-all duration-200 hover:opacity-80"
+                                                stroke="#1e293b" // Dark border for contrast or match container
+                                                strokeWidth={1}
+                                                className="transition-opacity duration-200 hover:opacity-90"
                                             />
-                                            {width > 60 && height > 35 && (
+                                            {width > 40 && height > 30 && (
                                                 <>
-                                                    <text x={x + width / 2} y={y + height / 2 - 6} textAnchor="middle" fill="#fff" fontSize={11} fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                                                        {name?.length > 10 ? name.slice(0, 10) + '…' : name}
+                                                    <text
+                                                        x={x + width / 2}
+                                                        y={y + height / 2 - 2}
+                                                        textAnchor="middle"
+                                                        fill="#fff"
+                                                        fontSize={Math.min(width / 5, 12)}
+                                                        fontWeight="bold"
+                                                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)', pointerEvents: 'none' }}
+                                                    >
+                                                        {name?.length > (width / 6) ? name.slice(0, Math.floor(width / 6)) + '..' : name}
                                                     </text>
-                                                    <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="#fff" fontSize={10} fontWeight="normal" fillOpacity={0.9}>
+                                                    <text
+                                                        x={x + width / 2}
+                                                        y={y + height / 2 + 10}
+                                                        textAnchor="middle"
+                                                        fill="#fff"
+                                                        fontSize={Math.min(width / 6, 10)}
+                                                        fontWeight="normal"
+                                                        fillOpacity={0.9}
+                                                        style={{ pointerEvents: 'none' }}
+                                                    >
                                                         {stock_percentage}%
                                                     </text>
                                                 </>
@@ -252,39 +277,38 @@ const Analytics = () => {
                                     );
                                 }}
                             >
-                                <Tooltip content={<CustomTooltip />} />
+                                <Tooltip content={<CustomTooltip />} cursor={false} />
                             </Treemap>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="text-center text-muted py-12">No heatmap data available</div>
+                        <div className="flex items-center justify-center h-full text-muted">No heatmap data available</div>
                     )}
 
-                    {/* Details Panel (Below) */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-default min-h-[80px] flex items-center justify-center transition-all">
-                        {hoveredNode ? (
-                            <div className="flex items-center gap-8 w-full justify-around animate-fade-in">
-                                <div className="text-left">
-                                    <p className="text-xs text-secondary font-medium uppercase tracking-wider">Component</p>
-                                    <h4 className="text-xl font-bold text-primary">{hoveredNode.name}</h4>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs text-secondary font-medium uppercase tracking-wider">Stock Health</p>
-                                    <div className={`text-2xl font-bold ${hoveredNode.status === 'critical' ? 'text-red-500' : hoveredNode.status === 'warning' ? 'text-amber-500' : 'text-green-500'}`}>
-                                        {hoveredNode.stock_percentage}%
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs text-secondary font-medium uppercase tracking-wider">Consumption Impact</p>
-                                    <p className="text-lg font-mono text-primary">{hoveredNode.value?.toLocaleString() || hoveredNode.size?.toLocaleString()}</p>
+                    {/* Hover Info Overlay (Absolute positioned to not take space) */}
+                    {hoveredNode && (
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-slate-800/95 backdrop-blur shadow-xl border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 flex items-center gap-6 pointer-events-none z-20">
+                            <div>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Component</p>
+                                <p className="font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">{hoveredNode.name}</p>
+                            </div>
+                            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stocks</p>
+                                <div className="flex gap-3 text-xs">
+                                    <span className="text-slate-800 dark:text-slate-200">Current: <span className="font-mono font-bold">{hoveredNode.current_stock?.toLocaleString()}</span></span>
+                                    <span className="text-slate-400">/</span>
+                                    <span className="text-slate-800 dark:text-slate-200">Monthly: <span className="font-mono font-bold">{hoveredNode.monthly_required_quantity?.toLocaleString()}</span></span>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="text-secondary text-sm flex items-center gap-2">
-                                <TrendingDown size={16} />
-                                Hover over any block above to see detailed metrics
+                            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Health</p>
+                                <p className={`font-bold ${hoveredNode.status === 'critical' ? 'text-red-500' :
+                                    hoveredNode.status === 'warning' ? 'text-amber-500' : 'text-green-500'
+                                    }`}>{hoveredNode.stock_percentage}%</p>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </Card>
 

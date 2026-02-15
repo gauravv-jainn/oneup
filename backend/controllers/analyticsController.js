@@ -170,7 +170,8 @@ exports.getHeatmapData = async (req, res) => {
             const stock = parseInt(row.current_stock);
             const monthly = parseInt(row.monthly_required_quantity);
             let percentage = monthly > 0 ? (stock / monthly) * 100 : 0;
-            if (percentage > 100) percentage = 100;
+            // Removed 100% cap
+            // if (percentage > 100) percentage = 100;
 
 
             let status = 'critical';
