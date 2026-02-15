@@ -47,13 +47,9 @@ const Sidebar = ({ isOpen, setIsOpen, isCollapsed, toggleCollapse }) => {
 
                 {/* Logo & Text */}
                 <div className={`flex items-center overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 p-0' : 'w-auto opacity-100'}`}>
-                    <div className="w-8 h-8 min-w-[32px] rounded-lg bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 animate-pulse-slow">
-                        <Zap size={18} fill="currentColor" />
-                    </div>
-                    <span
-                        className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 ml-3 whitespace-nowrap"
-                    >
-                        PCB-ICS
+                    <img src="/logo.png" alt="Logo" className="h-9 w-auto object-contain" />
+                    <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 ml-2 whitespace-nowrap">
+                        OneUp Solutions
                     </span>
                 </div>
 

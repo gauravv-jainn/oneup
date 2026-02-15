@@ -63,7 +63,10 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
     };
 
     return (
-        <header className={`h-16 fixed top-0 right-0 left-0 transition-all duration-300 ease-in-out z-30 px-4 md:px-8 flex items-center justify-between backdrop-blur-md bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(10,10,10,0.8)] border-b border-default ${isCollapsed ? 'md:left-[80px]' : 'md:left-[260px]'}`}>
+        <header
+            className={`h-16 fixed top-0 right-0 left-0 transition-all duration-300 ease-in-out z-30 px-4 md:px-8 flex items-center justify-between backdrop-blur-md border-b border-default ${isCollapsed ? 'md:left-[80px]' : 'md:left-[260px]'}`}
+            style={{ background: 'var(--bg-header)' }}
+        >
             {/* Left: Title & Toggle */}
             <div className="flex items-center gap-4">
                 <button

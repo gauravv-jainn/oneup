@@ -10,7 +10,7 @@ import Loader from '../components/common/Loader';
 
 // Default settings
 const DEFAULT_SETTINGS = {
-    systemName: 'PCB-ICS Inventory',
+    systemName: 'OneUp Solutions',
     lowStockThreshold: 50,
     refreshInterval: 30,
     emailNotifications: false,

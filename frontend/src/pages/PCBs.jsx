@@ -290,7 +290,10 @@ const PCBs = () => {
 
                     <div className="overflow-y-auto flex-1 p-2 space-y-2">
                         {filteredComponents.map(comp => (
-                            <div key={comp.id} className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-default shadow-sm hover:shadow-md transition-shadow">
+                            <div
+                                key={comp.id}
+                                className="theme-card p-3"
+                            >
                                 <div className="flex justify-between items-start mb-2">
                                     <p className="font-medium text-sm text-primary truncate" title={comp.name}>{comp.name}</p>
                                     <Badge variant={comp.current_stock > 0 ? "green" : "red"} className="text-[10px] px-1.5 py-0.5">

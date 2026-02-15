@@ -33,6 +33,7 @@ const Dashboard = () => {
     });
 
     const fetchData = useCallback(async () => {
+        setLoading(true);
         try {
             const rangeParam = `?range=${range}`;
             const [
@@ -82,6 +83,19 @@ const Dashboard = () => {
         fetchData();
     }, [fetchData]);
 
+    // Re-fetch when page becomes visible (user navigated away and back)
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') fetchData();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', onVisible);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
+        };
+    }, [fetchData]);
+
     if (loading) return <Loader fullScreen />;
 
     return (
@@ -92,15 +106,12 @@ const Dashboard = () => {
                     <h1 className="text-3xl font-bold text-primary">Dashboard Overview</h1>
                     <p className="text-secondary mt-1">Real-time inventory and production analytics</p>
                 </div>
-                <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <div className="seg-container">
                     {RANGE_OPTIONS.map(opt => (
                         <button
                             key={opt.value}
                             onClick={() => setRange(opt.value)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${range === opt.value
-                                    ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
+                            className={`seg-btn px-3 py-1.5 text-xs font-medium rounded-lg ${range === opt.value ? 'active' : ''}`}
                         >
                             {opt.label}
                         </button>
@@ -112,11 +123,11 @@ const Dashboard = () => {
             <KPIStats stats={data.stats} />
 
             {/* Middle Section: Heatmap & Critical Stock */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[450px]">
-                <div className="lg:col-span-2 h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 lg:h-[450px]">
                     <HeatmapPanel data={data.heatmapData} />
                 </div>
-                <div className="lg:col-span-1 h-full">
+                <div className="lg:col-span-1 lg:h-[450px]">
                     <CriticalStockPanel items={data.criticalStock} />
                 </div>
             </div>

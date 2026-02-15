@@ -1,11 +1,20 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../common/Card';
 
 const HeatmapPanel = ({ data }) => {
+    const navigate = useNavigate();
+
     const getCellColor = (percentage) => {
         if (percentage >= 50) return 'bg-green-500';
         if (percentage >= 20) return 'bg-amber-500';
         return 'bg-red-500';
+    };
+
+    const handleBlockClick = (item) => {
+        if (item.id) {
+            navigate(`/components?highlight=${item.id}`);
+        }
     };
 
     return (
@@ -25,7 +34,7 @@ const HeatmapPanel = ({ data }) => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto max-h-[350px] rounded-lg custom-scrollbar">
+            <div className="flex-1 overflow-y-auto min-h-0 rounded-lg custom-scrollbar pr-2">
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                     {(!data || data.length === 0) && (
                         <div className="col-span-full flex items-center justify-center text-secondary text-sm py-8 opacity-60">
@@ -41,9 +50,11 @@ const HeatmapPanel = ({ data }) => {
                                 className={`
                                     rounded-lg p-2.5 flex flex-col justify-between text-white shadow-sm cursor-pointer
                                     transition-all hover:scale-105 hover:z-10 hover:shadow-lg min-h-[70px]
+                                    active:scale-95
                                     ${getCellColor(stockPercent)}
                                 `}
-                                title={`${item.name}: ${item.current_stock} units (${stockPercent}%)`}
+                                title={`${item.name}: ${item.current_stock} units (${stockPercent}%) — Click to view details`}
+                                onClick={() => handleBlockClick(item)}
                             >
                                 <span className="text-[10px] font-semibold truncate opacity-90 leading-tight">{item.name}</span>
                                 <div className="flex items-end justify-between mt-1">

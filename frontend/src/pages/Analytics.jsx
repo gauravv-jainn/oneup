@@ -39,6 +39,7 @@ const Analytics = () => {
     const [hoveredNode, setHoveredNode] = useState(null);
 
     const fetchData = useCallback(async () => {
+        setLoading(true);
         try {
             let rangeParam = `?range=${range}`;
             if (range === 'custom' && customStart && customEnd) {
@@ -64,8 +65,22 @@ const Analytics = () => {
         }
     }, [range, customStart, customEnd]);
 
+    // Fetch on mount and when range/filters change
     useEffect(() => {
         fetchData();
+    }, [fetchData]);
+
+    // Re-fetch when page becomes visible (user navigated away and back)
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') fetchData();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', onVisible);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
+        };
     }, [fetchData]);
 
     const selectRange = (val) => {
@@ -118,25 +133,19 @@ const Analytics = () => {
                     <p className="text-secondary mt-1">Deep-dive into component usage and inventory trends</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                    <div className="seg-container">
                         {RANGE_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
                                 onClick={() => selectRange(opt.value)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${range === opt.value && !showCustom
-                                    ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
-                                    }`}
+                                className={`seg-btn px-3 py-1.5 text-xs font-medium rounded-lg ${range === opt.value && !showCustom ? 'active' : ''}`}
                             >
                                 {opt.label}
                             </button>
                         ))}
                         <button
                             onClick={() => selectRange('custom')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1 ${showCustom || range === 'custom'
-                                ? 'bg-blue-600 text-white shadow-sm'
-                                : 'text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
+                            className={`seg-btn px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 ${showCustom || range === 'custom' ? 'active' : ''}`}
                         >
                             <Calendar size={12} /> Custom
                         </button>

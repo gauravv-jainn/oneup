@@ -28,6 +28,41 @@
   --accent-red: #e03050;
   --accent-purple: #8b3fdb;
 
+  /* Badge Tokens - Light Mode */
+  --badge-blue-bg: #e0f2fe;
+  --badge-blue-text: #0c4a6e;
+  --badge-blue-border: #bae6fd;
+  --badge-green-bg: #dcfce7;
+  --badge-green-text: #14532d;
+  --badge-green-border: #bbf7d0;
+  --badge-orange-bg: #fff7ed;
+  --badge-orange-text: #7c2d12;
+  --badge-orange-border: #fed7aa;
+  --badge-red-bg: #fff1f2;
+  --badge-red-text: #881337;
+  --badge-red-border: #fecdd3;
+  --badge-gray-bg: #f1f5f9;
+  --badge-gray-text: #334155;
+  --badge-gray-border: #e2e8f0;
+  --badge-purple-bg: #f3e8ff;
+  --badge-purple-text: #581c87;
+  --badge-purple-border: #e9d5ff;
+
+  /* Code Tag Tokens - Light Mode */
+  --code-bg: #f1f5f9;
+  --code-text: #334155;
+  --code-border: #e2e8f0;
+
+  /* Surface Tokens - Light Mode */
+  --bg-surface: #ffffff;
+  --bg-surface-secondary: #f8fafc;
+  --bg-surface-hover: #f1f5f9;
+  --bg-inset: #f1f5f9;
+  --bg-table-header: #f8fafc;
+  --seg-bg: #f1f5f9;
+  --seg-active-bg: #ffffff;
+  --seg-hover-bg: #e2e8f0;
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -57,7 +92,6 @@
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-inverse: #f1f5f9;
-  /* Same in dark mode usually */
 
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-default: rgba(255, 255, 255, 0.1);
@@ -68,6 +102,41 @@
   --accent-orange: #ff8c00;
   --accent-red: #ff3b5c;
   --accent-purple: #a855f7;
+
+  /* Badge Tokens - Dark Mode */
+  --badge-blue-bg: rgba(0, 150, 204, 0.15);
+  --badge-blue-text: #67e8f9;
+  --badge-blue-border: rgba(0, 150, 204, 0.3);
+  --badge-green-bg: rgba(0, 179, 104, 0.15);
+  --badge-green-text: #6ee7b7;
+  --badge-green-border: rgba(0, 179, 104, 0.3);
+  --badge-orange-bg: rgba(224, 120, 0, 0.15);
+  --badge-orange-text: #fdba74;
+  --badge-orange-border: rgba(224, 120, 0, 0.3);
+  --badge-red-bg: rgba(224, 48, 80, 0.15);
+  --badge-red-text: #fca5a5;
+  --badge-red-border: rgba(224, 48, 80, 0.3);
+  --badge-gray-bg: rgba(148, 163, 184, 0.12);
+  --badge-gray-text: #94a3b8;
+  --badge-gray-border: rgba(148, 163, 184, 0.25);
+  --badge-purple-bg: rgba(139, 63, 219, 0.15);
+  --badge-purple-text: #c4b5fd;
+  --badge-purple-border: rgba(139, 63, 219, 0.3);
+
+  /* Code Tag Tokens - Dark Mode */
+  --code-bg: rgba(30, 41, 59, 0.8);
+  --code-text: #94a3b8;
+  --code-border: rgba(255, 255, 255, 0.1);
+
+  /* Surface Tokens - Dark Mode */
+  --bg-surface: rgba(30, 41, 59, 0.5);
+  --bg-surface-secondary: rgba(15, 23, 42, 0.6);
+  --bg-surface-hover: rgba(51, 65, 85, 0.5);
+  --bg-inset: rgba(15, 23, 42, 0.5);
+  --bg-table-header: rgba(15, 23, 42, 0.6);
+  --seg-bg: rgba(15, 23, 42, 0.6);
+  --seg-active-bg: rgba(51, 65, 85, 0.8);
+  --seg-hover-bg: rgba(51, 65, 85, 0.4);
 
   --shadow-glow-blue: 0 0 20px rgba(0, 212, 255, 0.3);
 }
@@ -426,36 +495,118 @@ h6 {
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: filter var(--transition-fast);
+}
+
+.badge:hover {
+  filter: brightness(0.95);
 }
 
 .badge-blue {
-  background: rgba(0, 150, 204, 0.1);
-  color: var(--accent-blue);
-  border: 1px solid rgba(0, 150, 204, 0.2);
+  background: var(--badge-blue-bg);
+  color: var(--badge-blue-text);
+  border: 1px solid var(--badge-blue-border);
 }
 
-.badge-green {
-  background: rgba(0, 179, 104, 0.1);
-  color: var(--accent-green);
-  border: 1px solid rgba(0, 179, 104, 0.2);
+.badge-green,
+.badge-success {
+  background: var(--badge-green-bg);
+  color: var(--badge-green-text);
+  border: 1px solid var(--badge-green-border);
 }
 
-.badge-orange {
-  background: rgba(224, 120, 0, 0.1);
-  color: var(--accent-orange);
-  border: 1px solid rgba(224, 120, 0, 0.2);
+.badge-orange,
+.badge-warning {
+  background: var(--badge-orange-bg);
+  color: var(--badge-orange-text);
+  border: 1px solid var(--badge-orange-border);
 }
 
 .badge-red {
-  background: rgba(224, 48, 80, 0.1);
-  color: var(--accent-red);
-  border: 1px solid rgba(224, 48, 80, 0.2);
+  background: var(--badge-red-bg);
+  color: var(--badge-red-text);
+  border: 1px solid var(--badge-red-border);
 }
 
 .badge-gray {
-  background: rgba(148, 163, 184, 0.1);
-  color: var(--text-secondary);
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
+  border: 1px solid var(--badge-gray-border);
+}
+
+.badge-purple {
+  background: var(--badge-purple-bg);
+  color: var(--badge-purple-text);
+  border: 1px solid var(--badge-purple-border);
+}
+
+/* Code Tags (Part Numbers, DC Numbers, etc.) */
+.code-tag {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  color: var(--code-text);
+  border: 1px solid var(--code-border);
+  transition: background var(--transition-fast);
+}
+
+/* Component Cards */
+.theme-card {
+  background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.theme-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+/* Segmented Control Container */
+.seg-container {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--seg-bg);
+}
+
+/* Segmented Control Buttons */
+.seg-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.seg-btn:hover {
+  background: var(--seg-hover-bg);
+  color: var(--text-primary);
+}
+
+.seg-btn.active {
+  background: var(--seg-active-bg);
+  color: var(--accent-blue);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+/* Table Header */
+.theme-table-header {
+  background: var(--bg-table-header);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-default);
 }
 
 /* Inputs */
@@ -513,6 +664,34 @@ h6 {
 
 .table tr:hover td {
   background: rgba(0, 0, 0, 0.01);
+}
+
+/* =========================================
+   HIGHLIGHT ROW ANIMATION (Heatmap → Components)
+   ========================================= */
+@keyframes highlight-row {
+  0% {
+    background-color: rgba(250, 204, 21, 0.45);
+    box-shadow: inset 4px 0 0 0 #eab308;
+  }
+
+  70% {
+    background-color: rgba(250, 204, 21, 0.3);
+    box-shadow: inset 4px 0 0 0 #eab308;
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+[data-theme="dark"] .highlight-row td {
+  --highlight-color: rgba(250, 204, 21, 0.15);
+}
+
+.highlight-row td {
+  animation: highlight-row 2s ease-out forwards;
 }
 
 @tailwind utilities;

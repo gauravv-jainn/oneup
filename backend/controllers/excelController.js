@@ -48,7 +48,13 @@ exports.importComponents = async (req, res) => {
                 // Map fields: Spare Part Code OR Part Code -> part_number, Component -> name
                 const partNumber = row['spare part code'] || row['part code'];
                 const name = row['component'];
-                const stock = parseInt(row['count']) || 0; // Optional, default 0
+                const stock = parseInt(row['count']) || 0;
+                const description = row['description'] || null;
+                const sparePartStatus = row['status'] || null;
+                const statusDescription = row['status description'] || null;
+                const statusCount = parseInt(row['status count']) || null;
+                const totalEntries = parseInt(row['total entries']) || null;
+                const dcNo = row['dc no'] || row['dc no.'] || null;
 
                 if (!partNumber || !name) {
                     if (summary.masterErrors.length < 5) summary.masterErrors.push(`Row ${index + 2}: Missing Part Code or Component Name`);
@@ -56,24 +62,22 @@ exports.importComponents = async (req, res) => {
                 }
 
                 try {
-                    // Upsert Component
-                    // Note: Description ignored as per schema constraints
                     await db.query(
-                        `INSERT INTO components (name, part_number, current_stock, monthly_required_quantity) 
-                         VALUES ($1, $2, $3, $4) 
-                         ON CONFLICT (part_number) DO UPDATE SET 
+                        `INSERT INTO components (name, part_number, current_stock, monthly_required_quantity,
+                         description, spare_part_status, status_description, status_count, total_entries, dc_no)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                         ON CONFLICT (part_number) DO UPDATE SET
                             name = $1,
                             current_stock = $3,
+                            description = COALESCE($5, components.description),
+                            spare_part_status = COALESCE($6, components.spare_part_status),
+                            status_description = COALESCE($7, components.status_description),
+                            status_count = COALESCE($8, components.status_count),
+                            total_entries = COALESCE($9, components.total_entries),
+                            dc_no = COALESCE($10, components.dc_no),
                             updated_at = CURRENT_TIMESTAMP`,
-                        [name, partNumber, stock, 1] // Default Monthly Required to 1 to satisfy constraint
+                        [name, partNumber, stock, 1, description, sparePartStatus, statusDescription, statusCount, totalEntries, dcNo]
                     );
-                    // WAIT: If upsert logic should Update Stock from Count? 
-                    // User said: "do NOT require stock... set defaults if needed".
-                    // Usually Master update implies updating definitions. 
-                    // I will strictly INSERT IGNORE or Update Name? 
-                    // The prompt: "Upsert into components... part_number... name... description". It doesn't explicitly say update stock.
-                    // But if I default stock to 0, I shouldn't overwrite existing stock with 0.
-                    // So `current_stock = components.current_stock` preserves it.
 
                     summary.masterProcessed++;
                 } catch (err) {
@@ -336,7 +340,7 @@ exports.exportComponents = async (req, res) => {
         const format = req.query.format || 'xlsx';
         const componentId = req.query.component_id;
 
-        let query = 'SELECT name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days FROM components';
+        let query = 'SELECT name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days, description, spare_part_status, status_description, status_count, total_entries, dc_no FROM components';
         let params = [];
         if (componentId) {
             query += ' WHERE id = $1';

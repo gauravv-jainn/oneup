@@ -72,7 +72,7 @@ const Login = () => {
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg glow-blue transform rotate-3 hover:rotate-6 transition-transform">
                         <Zap size={32} className="text-white" fill="currentColor" />
                     </div>
-                    <h1 className="text-2xl font-bold text-primary mb-2">PCB Inventory Control</h1>
+                    <h1 className="text-2xl font-bold text-primary mb-2">OneUp Solutions</h1>
                     <p className="text-secondary text-sm">Secure Manufacturing Portal</p>
                 </div>
 

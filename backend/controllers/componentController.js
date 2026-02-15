@@ -2,7 +2,8 @@ const db = require('../config/db');
 
 // Create Component
 exports.createComponent = async (req, res) => {
-    const { name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days } = req.body;
+    const { name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days,
+        description, spare_part_status, status_description, status_count, total_entries, dc_no } = req.body;
 
     if (!name || !part_number || current_stock === undefined || monthly_required_quantity === undefined) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -14,8 +15,11 @@ exports.createComponent = async (req, res) => {
 
     try {
         const result = await db.query(
-            'INSERT INTO components (name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days || null]
+            `INSERT INTO components (name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days,
+             description, spare_part_status, status_description, status_count, total_entries, dc_no)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+            [name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days || null,
+                description || null, spare_part_status || null, status_description || null, status_count || null, total_entries || null, dc_no || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -56,12 +60,17 @@ exports.getComponentById = async (req, res) => {
 // Update Component
 exports.updateComponent = async (req, res) => {
     const { id } = req.params;
-    const { name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days } = req.body;
+    const { name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days,
+        description, spare_part_status, status_description, status_count, total_entries, dc_no } = req.body;
 
     try {
         const result = await db.query(
-            'UPDATE components SET name = $1, part_number = $2, current_stock = $3, monthly_required_quantity = $4, estimated_arrival_days = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
-            [name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days || null, id]
+            `UPDATE components SET name = $1, part_number = $2, current_stock = $3, monthly_required_quantity = $4,
+             estimated_arrival_days = $5, description = $6, spare_part_status = $7, status_description = $8,
+             status_count = $9, total_entries = $10, dc_no = $11, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $12 RETURNING *`,
+            [name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days || null,
+                description || null, spare_part_status || null, status_description || null, status_count || null, total_entries || null, dc_no || null, id]
         );
 
         if (result.rows.length === 0) {

@@ -27,9 +27,15 @@ const app = express();
                 quantity_required INTEGER NOT NULL CHECK (quantity_required > 0)
             );
         `);
-        // Add estimated_arrival_days column if not exists
+        // Add new columns if not exists
         await db.query(`
             ALTER TABLE components ADD COLUMN IF NOT EXISTS estimated_arrival_days INTEGER DEFAULT NULL;
+            ALTER TABLE components ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
+            ALTER TABLE components ADD COLUMN IF NOT EXISTS spare_part_status VARCHAR(50) DEFAULT NULL;
+            ALTER TABLE components ADD COLUMN IF NOT EXISTS status_description VARCHAR(255) DEFAULT NULL;
+            ALTER TABLE components ADD COLUMN IF NOT EXISTS status_count INTEGER DEFAULT NULL;
+            ALTER TABLE components ADD COLUMN IF NOT EXISTS total_entries INTEGER DEFAULT NULL;
+            ALTER TABLE components ADD COLUMN IF NOT EXISTS dc_no VARCHAR(50) DEFAULT NULL;
         `);
         console.log('[INIT] Schema migrations complete');
     } catch (err) {
