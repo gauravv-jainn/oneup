@@ -42,7 +42,7 @@
 -   **Frontend**: React, TailwindCSS, Recharts.
 
 ### 24-Hour Hackathon Deliverable
-Built by [Your Name/Team] for Electrolyte Solutions.
+Built by OneUp for Electrolyte Solutions.
 =======
 # JR-46-Invictus
 >>>>>>> 2af4ff65de9975e96d3b98c102ec904f0c220b23
