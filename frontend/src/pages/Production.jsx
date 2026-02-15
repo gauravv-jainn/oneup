@@ -19,6 +19,7 @@ const Production = () => {
     const [bulkUploading, setBulkUploading] = useState(false);
     const [bulkResult, setBulkResult] = useState(null);
     const bulkFileRef = useRef(null);
+    const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
     // Derived state for detailed PCB info
     const selectedPCBDetails = pcbs.find(p => String(p.id) === selectedPCB);
@@ -70,8 +71,9 @@ const Production = () => {
                 quantity_produced: parseInt(quantity)
             });
             toast.success(`Production successful! Run ID: ${res.data.productionId || 'New'}`);
-            // Refresh BOM stock
+            // Refresh BOM stock and history
             fetchBOM(selectedPCB);
+            setHistoryRefreshKey(k => k + 1);
             setLoading(false);
         } catch (error) {
             toast.error(error.response?.data?.error || 'Production failed');
@@ -322,6 +324,7 @@ const Production = () => {
                                     setBulkResult(res.data);
                                     toast.success(`Processed ${res.data.successCount} production runs`);
                                     fetchPCBs();
+                                    setHistoryRefreshKey(k => k + 1);
                                 } catch (error) {
                                     setBulkResult({ errors: [error.response?.data?.error || 'Upload failed'] });
                                     toast.error('Bulk upload failed');
@@ -362,19 +365,20 @@ const Production = () => {
                         <p className="text-sm text-secondary">Recent manufacturing runs</p>
                     </div>
                 </div>
-                <ProductionHistoryTable />
+                <ProductionHistoryTable refreshKey={historyRefreshKey} />
             </Card>
         </div>
     );
 };
 
 // Sub-component for history (defined in same file for simplicity)
-const ProductionHistoryTable = () => {
+const ProductionHistoryTable = ({ refreshKey }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchHistory = async () => {
+            setLoading(true);
             try {
                 const res = await api.get('/production/history');
                 setHistory(res.data);
@@ -385,7 +389,7 @@ const ProductionHistoryTable = () => {
             }
         };
         fetchHistory();
-    }, []);
+    }, [refreshKey]);
 
     if (loading) return <div className="text-center py-4 text-xs text-secondary">Loading history...</div>;
 
