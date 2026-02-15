@@ -7,18 +7,25 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const AppLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
         <div className="min-h-screen bg-body text-primary font-sans transition-colors duration-200">
-            <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-            <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+            <Sidebar
+                isOpen={sidebarOpen}
+                setIsOpen={setSidebarOpen}
+                isCollapsed={isCollapsed}
+                toggleCollapse={() => setIsCollapsed(!isCollapsed)}
+            />
+            <Header
+                toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                isCollapsed={isCollapsed}
+            />
 
             {/* Main Content Area */}
-            {/* 
-                Desktop: pl-[260px] (Sidebar width)
-                Mobile: pl-0
-            */}
-            <main className="md:pl-[260px] pl-0 pt-16 min-h-screen transition-all duration-300">
+            <main
+                className={`pt-16 min-h-screen transition-all duration-300 ease-in-out pl-0 ${isCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}
+            >
                 <div className="max-w-[1600px] mx-auto p-4 md:p-7 animate-fade-up">
                     <Outlet />
                 </div>

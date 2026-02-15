@@ -45,8 +45,23 @@ const Procurement = () => {
                 supplier_name: ''
             });
             setIsModalOpen(true);
+        } else if (status === 'received') {
+            // Send existing order details so backend can update stock
+            const trigger = triggers.find(t => t.id === id);
+            try {
+                await api.put(`/procurement/triggers/${id}`, {
+                    status: 'received',
+                    quantity_ordered: trigger.quantity_ordered,
+                    expected_delivery_date: trigger.expected_delivery_date,
+                    supplier_name: trigger.supplier_name
+                });
+                fetchTriggers();
+                toast.success(`Stock updated: +${trigger.quantity_ordered} units received`);
+            } catch (error) {
+                console.error(error);
+                toast.error("Failed to update status");
+            }
         } else {
-            // For 'received' or direct status change without details
             try {
                 await api.put(`/procurement/triggers/${id}`, { status });
                 fetchTriggers();

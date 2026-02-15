@@ -1,6 +1,6 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+/* @tailwind utilities moved to bottom */
 
 /* =========================================
    1. RESET & VARIABLES
@@ -514,3 +514,5 @@ h6 {
 .table tr:hover td {
   background: rgba(0, 0, 0, 0.01);
 }
+
+@tailwind utilities;

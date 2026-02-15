@@ -100,3 +100,45 @@ exports.removeComponentFromPCB = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
+// Update PCB Type
+exports.updatePCB = async (req, res) => {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: 'PCB Name is required' });
+    }
+
+    try {
+        const result = await db.query(
+            'UPDATE pcb_types SET name = $1, description = $2 WHERE id = $3 RETURNING *',
+            [name, description || null, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'PCB not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+// Delete PCB Type
+exports.deletePCB = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Delete associated BOM entries first
+        await db.query('DELETE FROM pcb_components WHERE pcb_type_id = $1', [id]);
+        const result = await db.query('DELETE FROM pcb_types WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'PCB not found' });
+        }
+        res.json({ message: 'PCB type deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error. PCB may be referenced by production or orders.' });
+    }
+};

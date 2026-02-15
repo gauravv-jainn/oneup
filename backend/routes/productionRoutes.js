@@ -6,5 +6,6 @@ const verifyToken = require('../middleware/authMiddleware');
 router.use(verifyToken);
 
 router.post('/', productionController.recordProduction);
+router.get('/history', productionController.getHistory);
 
 module.exports = router;

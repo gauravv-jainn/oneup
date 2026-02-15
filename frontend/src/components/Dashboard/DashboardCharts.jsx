@@ -146,9 +146,7 @@ const DashboardCharts = ({ consumptionData, topComponentsData, productionData })
                 <div className="h-64 relative">
                     <Doughnut options={doughnutOptions} data={doughnutData} />
                     {/* Center Text */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-3xl font-bold text-primary opacity-50">5</span>
-                    </div>
+
                 </div>
             </Card>
 

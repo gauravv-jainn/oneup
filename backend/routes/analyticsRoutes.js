@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const analyticsController = require('../controllers/analyticsController');
+const analyticsController = require('../controllers/analyticsControllerV2');
 const verifyToken = require('../middleware/authMiddleware');
 
 router.use(verifyToken);

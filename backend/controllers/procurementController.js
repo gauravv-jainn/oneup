@@ -40,7 +40,17 @@ exports.updateTriggerStatus = async (req, res) => {
             return res.status(404).json({ error: 'Trigger not found' });
         }
 
-        res.json(result.rows[0]);
+        const trigger = result.rows[0];
+
+        // When status is 'received', add quantity to component stock
+        if (status === 'received' && trigger.quantity_ordered) {
+            await db.query(
+                'UPDATE components SET current_stock = current_stock + $1 WHERE id = $2',
+                [trigger.quantity_ordered, trigger.component_id]
+            );
+        }
+
+        res.json(trigger);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });

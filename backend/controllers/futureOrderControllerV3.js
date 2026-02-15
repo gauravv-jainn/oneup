@@ -1,5 +1,5 @@
 const db = require('../config/db');
-console.log("--- futureOrderController LOADED V2 ---");
+console.log("--- futureOrderController LOADED V3 ---");
 
 // Helper to get stock projection for a specific component and date
 const getStockProjection = async (componentId, targetDate) => {
@@ -110,6 +110,7 @@ exports.checkAvailability = async (req, res) => {
 // Estimate Delivery Date
 exports.estimateDate = async (req, res) => {
     const { items } = req.body; // [{pcb_type_id, quantity_required}]
+    console.log("[ESTIMATE_DATE] Items:", items);
     try {
         // Merge all component needs
         const componentNeeds = {};
@@ -192,11 +193,17 @@ exports.estimateDate = async (req, res) => {
 
 // Create Future Order (supports multi-PCB via items array)
 exports.createOrder = async (req, res) => {
-    console.log("createOrder CALLED V2");
+    console.log("createOrder CALLED V3");
     const { order_name, pcb_type_id, quantity_required, scheduled_production_date, delivery_date, status, items } = req.body;
 
+    console.log(`[CREATE_ORDER] Name: ${order_name}, Items:`, items);
+
+    let client;
     try {
-        const result = await db.query(
+        client = await db.pool.connect();
+        await client.query('BEGIN');
+
+        const result = await client.query(
             `INSERT INTO future_orders 
              (order_name, pcb_type_id, quantity_required, scheduled_production_date, delivery_date, status)
              VALUES ($1, $2, $3, $4, $5, $6)
@@ -204,21 +211,29 @@ exports.createOrder = async (req, res) => {
             [order_name, pcb_type_id || null, quantity_required || null, scheduled_production_date, delivery_date, status || 'pending']
         );
         const order = result.rows[0];
+        console.log(`[CREATE_ORDER] Order Created ID: ${order.id}`);
 
         // Insert order items if provided
         if (items && items.length > 0) {
             for (const item of items) {
-                await db.query(
+                console.log(`[CREATE_ORDER] Inserting Item: PCB=${item.pcb_type_id}, Qty=${item.quantity_required}`);
+                await client.query(
                     'INSERT INTO order_items (order_id, pcb_type_id, quantity_required) VALUES ($1, $2, $3)',
                     [order.id, item.pcb_type_id, item.quantity_required]
                 );
             }
+        } else {
+            console.log("[CREATE_ORDER] WARNING: No items provided in array");
         }
 
+        await client.query('COMMIT');
         res.status(201).json(order);
     } catch (err) {
+        if (client) await client.query('ROLLBACK');
         console.error("createOrder ERROR:", err);
-        res.status(500).json({ error: 'CONTROLLER V2: ' + err.message });
+        res.status(500).json({ error: 'CONTROLLER V3: ' + err.message });
+    } finally {
+        if (client) client.release();
     }
 };
 

@@ -104,3 +104,22 @@ exports.recordProduction = async (req, res) => {
         client.release();
     }
 };
+
+// Production History
+exports.getHistory = async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT pe.id, pe.quantity_produced, pe.produced_at, pt.name as pcb_name,
+                    (SELECT COUNT(*) FROM consumption_history WHERE production_entry_id = pe.id) as components_consumed
+             FROM production_entries pe
+             JOIN pcb_types pt ON pe.pcb_type_id = pt.id
+             ORDER BY pe.produced_at DESC
+             LIMIT 100`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+

@@ -50,9 +50,17 @@ const KPIStats = ({ stats }) => {
             borderColorClass: 'border-orange-500'
         },
         {
-            title: 'Low Stock Alerts',
-            value: stats.lowStock,
-            trend: '-2%',
+            title: 'Low Stock',
+            value: stats.lowStock || 0,
+            trend: 'Warning',
+            Icon: AlertTriangle,
+            colorClass: 'text-amber-500',
+            borderColorClass: 'border-amber-500'
+        },
+        {
+            title: 'Critical Stock',
+            value: stats.criticalStock || 0,
+            trend: 'Alert',
             Icon: AlertTriangle,
             colorClass: 'text-red-500',
             borderColorClass: 'border-red-500'
@@ -60,7 +68,7 @@ const KPIStats = ({ stats }) => {
         {
             title: 'Pending Orders',
             value: stats.pendingOrders,
-            trend: '+15%',
+            trend: '',
             Icon: ShoppingCart,
             colorClass: 'text-purple-500',
             borderColorClass: 'border-purple-500'
@@ -68,7 +76,7 @@ const KPIStats = ({ stats }) => {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {kpiData.map((item, index) => (
                 <KPICard key={index} {...item} />
             ))}

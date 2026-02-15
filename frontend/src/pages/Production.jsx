@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { Factory, AlertTriangle, CheckCircle, Info, Package, Zap } from 'lucide-react';
+import { Factory, AlertTriangle, CheckCircle, Info, Package, Zap, Upload, FileSpreadsheet, FileUp } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -14,8 +14,14 @@ const Production = () => {
     const [bom, setBOM] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // Bulk upload state
+    const [bulkFile, setBulkFile] = useState(null);
+    const [bulkUploading, setBulkUploading] = useState(false);
+    const [bulkResult, setBulkResult] = useState(null);
+    const bulkFileRef = useRef(null);
+
     // Derived state for detailed PCB info
-    const selectedPCBDetails = pcbs.find(p => p.id === selectedPCB);
+    const selectedPCBDetails = pcbs.find(p => String(p.id) === selectedPCB);
 
     useEffect(() => {
         fetchPCBs();
@@ -121,12 +127,12 @@ const Production = () => {
                                 <div className="relative">
                                     <input
                                         type="number" min="1"
-                                        className="input w-full pr-12"
+                                        className="input w-full pl-14 pr-4"
                                         value={quantity}
                                         onChange={(e) => setQuantity(e.target.value)}
                                         required
                                     />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-secondary font-medium">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-secondary font-medium">
                                         Units
                                     </span>
                                 </div>
@@ -239,8 +245,180 @@ const Production = () => {
                     </Card>
                 </div>
             </div>
+
+            {/* Bulk Upload Section */}
+            <Card className="mt-8">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500">
+                        <Upload size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-primary">Bulk Production Upload</h2>
+                        <p className="text-sm text-secondary">Upload a CSV/Excel file with columns: PCB Name, Quantity</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div
+                        className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${bulkFile ? 'border-green-400 bg-green-50/50 dark:bg-green-900/10' : 'border-default hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                        onClick={() => bulkFileRef.current?.click()}
+                    >
+                        <input
+                            ref={bulkFileRef}
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            className="hidden"
+                            onChange={(e) => {
+                                const f = e.target.files[0];
+                                if (f) {
+                                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
+                                    if (['.xlsx', '.xls', '.csv'].includes(ext)) {
+                                        setBulkFile(f);
+                                        setBulkResult(null);
+                                    } else {
+                                        toast.error('Invalid file. Use .xlsx, .xls, or .csv');
+                                    }
+                                }
+                            }}
+                        />
+
+                        {bulkFile ? (
+                            <div className="text-center">
+                                <FileSpreadsheet size={40} className="mx-auto text-green-500 mb-2" />
+                                <p className="font-bold text-primary">{bulkFile.name}</p>
+                                <p className="text-xs text-secondary">{(bulkFile.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                        ) : (
+                            <div className="text-center text-secondary">
+                                <FileUp size={40} className="mx-auto mb-2 opacity-30" />
+                                <p className="font-medium">Click to upload</p>
+                                <p className="text-xs mt-1">CSV or Excel file</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-lg text-sm">
+                            <p className="font-semibold text-purple-800 dark:text-purple-300 mb-2">File Format:</p>
+                            <table className="w-full text-xs text-purple-700 dark:text-purple-400">
+                                <thead><tr><th className="text-left pb-1">PCB Name</th><th className="text-left pb-1">Quantity</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Arduino Mega</td><td>50</td></tr>
+                                    <tr><td>Raspberry Pi HAT</td><td>25</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <Button
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                            disabled={!bulkFile || bulkUploading}
+                            onClick={async () => {
+                                if (!bulkFile) return;
+                                setBulkUploading(true);
+                                const formData = new FormData();
+                                formData.append('file', bulkFile);
+                                try {
+                                    const res = await api.post('/excel/import/production', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                                    setBulkResult(res.data);
+                                    toast.success(`Processed ${res.data.successCount} production runs`);
+                                    fetchPCBs();
+                                } catch (error) {
+                                    setBulkResult({ errors: [error.response?.data?.error || 'Upload failed'] });
+                                    toast.error('Bulk upload failed');
+                                } finally {
+                                    setBulkUploading(false);
+                                }
+                            }}
+                        >
+                            {bulkUploading ? 'Processing...' : 'Start Bulk Production'}
+                        </Button>
+
+                        {bulkResult && (
+                            <div className={`p-3 rounded-lg text-sm ${bulkResult.successCount > 0 ? 'bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800'}`}>
+                                {bulkResult.successCount !== undefined && (
+                                    <p className="text-green-700 dark:text-green-400 font-bold">
+                                        <CheckCircle size={14} className="inline mr-1" />
+                                        {bulkResult.successCount} of {bulkResult.totalProcessed} runs completed
+                                    </p>
+                                )}
+                                {bulkResult.errors?.length > 0 && (
+                                    <ul className="mt-2 text-xs text-red-600 dark:text-red-400 space-y-1 max-h-32 overflow-y-auto">
+                                        {bulkResult.errors.map((err, i) => <li key={i}>• {err}</li>)}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Card>
+            {/* Production History Section */}
+            <Card className="mt-8">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-lg bg-green-500/10 text-green-500">
+                        <FileSpreadsheet size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-primary">Production History</h2>
+                        <p className="text-sm text-secondary">Recent manufacturing runs</p>
+                    </div>
+                </div>
+                <ProductionHistoryTable />
+            </Card>
         </div>
     );
+};
+
+// Sub-component for history (defined in same file for simplicity)
+const ProductionHistoryTable = () => {
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            try {
+                const res = await api.get('/production/history');
+                setHistory(res.data);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchHistory();
+    }, []);
+
+    if (loading) return <div className="text-center py-4 text-xs text-secondary">Loading history...</div>;
+
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-secondary border-b border-default">
+                    <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">PCB Name</th>
+                        <th className="px-4 py-3 text-right">Quantity</th>
+                        <th className="px-4 py-3 text-right">Components Used</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-default">
+                    {history.length === 0 ? (
+                        <tr><td colSpan="4" className="text-center py-4 text-sm text-secondary">No history found.</td></tr>
+                    ) : (
+                        history.map(row => (
+                            <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                                <td className="px-4 py-3 text-sm text-secondary">{new Date(row.produced_at).toLocaleString()}</td>
+                                <td className="px-4 py-3 font-medium text-primary">{row.pcb_name}</td>
+                                <td className="px-4 py-3 text-right font-mono font-bold text-primary">{row.quantity_produced}</td>
+                                <td className="px-4 py-3 text-right font-mono text-secondary">{row.components_consumed}</td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </table>
+        </div>
+    );
+
+
 };
 
 export default Production;

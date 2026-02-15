@@ -2,11 +2,142 @@ import { useState, useEffect } from 'react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
-import { Users, Shield, Settings, Activity, Search, Trash2, Save, UserPlus, Clock } from 'lucide-react';
+import { Users, Shield, Settings, Activity, Search, Trash2, Save, UserPlus, Clock, RotateCcw, Bell, Database, Gauge } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
+
+// Default settings
+const DEFAULT_SETTINGS = {
+    systemName: 'PCB-ICS Inventory',
+    lowStockThreshold: 50,
+    refreshInterval: 30,
+    emailNotifications: false,
+    defaultExportFormat: 'xlsx',
+    autoRefresh: true,
+};
+
+const SettingsTab = () => {
+    const [settings, setSettings] = useState(() => {
+        const saved = localStorage.getItem('pcb-system-settings');
+        return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+    });
+    const [hasChanges, setHasChanges] = useState(false);
+
+    const updateSetting = (key, value) => {
+        setSettings(prev => ({ ...prev, [key]: value }));
+        setHasChanges(true);
+    };
+
+    const handleSave = () => {
+        localStorage.setItem('pcb-system-settings', JSON.stringify(settings));
+        setHasChanges(false);
+        toast.success('Settings saved successfully');
+    };
+
+    const handleReset = () => {
+        setSettings(DEFAULT_SETTINGS);
+        localStorage.removeItem('pcb-system-settings');
+        setHasChanges(false);
+        toast.info('Settings reset to defaults');
+    };
+
+    return (
+        <Card className="animate-fade-in max-w-2xl">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                    <Settings size={20} className="text-blue-500" />
+                    <h2 className="text-lg font-bold text-primary">System Settings</h2>
+                </div>
+                {hasChanges && <Badge variant="orange">Unsaved Changes</Badge>}
+            </div>
+
+            <div className="space-y-6">
+                {/* System Name */}
+                <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div>
+                        <h3 className="font-medium text-primary">System Name</h3>
+                        <p className="text-sm text-secondary">Displayed in the sidebar and header.</p>
+                    </div>
+                    <div className="w-64">
+                        <input type="text" className="input w-full" value={settings.systemName} onChange={(e) => updateSetting('systemName', e.target.value)} />
+                    </div>
+                </div>
+
+                {/* Low Stock Threshold */}
+                <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div>
+                        <h3 className="font-medium text-primary flex items-center gap-2"><Gauge size={16} className="text-orange-500" /> Low Stock Threshold</h3>
+                        <p className="text-sm text-secondary">Components below this level trigger procurement alerts.</p>
+                    </div>
+                    <div className="w-32">
+                        <input type="number" min="1" className="input w-full text-right" value={settings.lowStockThreshold} onChange={(e) => updateSetting('lowStockThreshold', parseInt(e.target.value) || 0)} />
+                    </div>
+                </div>
+
+                {/* Data Refresh Interval */}
+                <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div>
+                        <h3 className="font-medium text-primary flex items-center gap-2"><Clock size={16} className="text-blue-500" /> Data Refresh Interval</h3>
+                        <p className="text-sm text-secondary">How often dashboards auto-refresh (in seconds).</p>
+                    </div>
+                    <div className="w-32">
+                        <input type="number" min="5" max="300" className="input w-full text-right" value={settings.refreshInterval} onChange={(e) => updateSetting('refreshInterval', parseInt(e.target.value) || 30)} />
+                    </div>
+                </div>
+
+                {/* Email Notifications */}
+                <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div>
+                        <h3 className="font-medium text-primary flex items-center gap-2"><Bell size={16} className="text-purple-500" /> Email Notifications</h3>
+                        <p className="text-sm text-secondary">Receive alerts for low stock and order updates.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={settings.emailNotifications} onChange={(e) => updateSetting('emailNotifications', e.target.checked)} />
+                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                {/* Default Export Format */}
+                <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div>
+                        <h3 className="font-medium text-primary flex items-center gap-2"><Database size={16} className="text-green-500" /> Default Export Format</h3>
+                        <p className="text-sm text-secondary">Preferred file format for data exports.</p>
+                    </div>
+                    <div className="w-40">
+                        <select className="input w-full" value={settings.defaultExportFormat} onChange={(e) => updateSetting('defaultExportFormat', e.target.value)}>
+                            <option value="xlsx">Excel (.xlsx)</option>
+                            <option value="csv">CSV (.csv)</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Auto Refresh */}
+                <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div>
+                        <h3 className="font-medium text-primary">Auto-Refresh Dashboard</h3>
+                        <p className="text-sm text-secondary">Automatically refresh data at the set interval.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={settings.autoRefresh} onChange={(e) => updateSetting('autoRefresh', e.target.checked)} />
+                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-between pt-4">
+                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:bg-red-50">
+                        <RotateCcw size={16} className="mr-2" /> Reset to Defaults
+                    </Button>
+                    <Button onClick={handleSave} disabled={!hasChanges}>
+                        <Save size={16} className="mr-2" /> Save Changes
+                    </Button>
+                </div>
+            </div>
+        </Card>
+    );
+};
 
 const Admin = () => {
     const [activeTab, setActiveTab] = useState('users');
@@ -211,34 +342,9 @@ const Admin = () => {
                             </Card>
                         )}
 
-                        {/* Settings Tab (Client-side Only for Demo) */}
+                        {/* Settings Tab (Local Storage Backed) */}
                         {activeTab === 'settings' && (
-                            <Card className="animate-fade-in max-w-2xl">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <Settings size={20} className="text-slate-500" />
-                                    <h2 className="text-lg font-bold text-primary">General Settings</h2>
-                                </div>
-                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm mb-4">
-                                    Note: These settings are local and for demonstration purposes.
-                                </div>
-                                {/* ... existing settings UI ... */}
-                                <div className="space-y-6 opacity-50 pointer-events-none">
-                                    <div className="flex items-center justify-between pb-4 border-b border-default">
-                                        <div>
-                                            <h3 className="font-medium text-primary">System Name</h3>
-                                            <p className="text-sm text-secondary">The name displayed in the dashboard header.</p>
-                                        </div>
-                                        <div className="w-64">
-                                            <input type="text" className="input w-full" defaultValue="PCB-ICS Inventory" disabled />
-                                        </div>
-                                    </div>
-                                    <div className="pt-6 flex justify-end">
-                                        <Button disabled>
-                                            <Save size={18} className="mr-2" /> Save Changes
-                                        </Button>
-                                    </div>
-                                </div>
-                            </Card>
+                            <SettingsTab />
                         )}
                     </>
                 )}

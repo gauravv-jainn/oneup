@@ -2,57 +2,58 @@ import React from 'react';
 import Card from '../common/Card';
 
 const HeatmapPanel = ({ data }) => {
-    // Determine color based on stock percentage
     const getCellColor = (percentage) => {
         if (percentage >= 50) return 'bg-green-500';
-        if (percentage >= 20) return 'bg-orange-500';
+        if (percentage >= 20) return 'bg-amber-500';
         return 'bg-red-500';
     };
 
     return (
         <Card className="flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-primary">Inventory Heatmap</h3>
-
-                {/* Legend */}
                 <div className="flex items-center gap-3 text-xs text-secondary">
                     <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Healthy
+                        <span className="w-2.5 h-2.5 rounded bg-green-500"></span> Healthy (≥50%)
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-orange-500"></span> Warning
+                        <span className="w-2.5 h-2.5 rounded bg-amber-500"></span> Low (20-50%)
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-red-500"></span> Critical
+                        <span className="w-2.5 h-2.5 rounded bg-red-500"></span> Critical (&lt;20%)
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-3 flex-1">
-                {(!data || data.length === 0) && (
-                    <div className="col-span-5 flex items-center justify-center text-secondary text-sm py-8 opacity-60">
-                        No heatmap data available yet.
-                    </div>
-                )}
-                {data.map((item, index) => {
-                    // Calculate percentage (mock logic if needed, or real)
-                    const stockPercent = item.stockPercentage || Math.min(100, Math.round((item.current_stock / item.monthly_required_quantity) * 100));
-
-                    return (
-                        <div
-                            key={index}
-                            className={`
-                                rounded-lg p-3 flex flex-col justify-between text-white shadow-sm cursor-pointer
-                                transition-transform hover:scale-105 hover:z-10 hover:shadow-lg
-                                ${getCellColor(stockPercent)}
-                            `}
-                            title={`${item.name}: ${item.current_stock} units (${stockPercent}%)`}
-                        >
-                            <span className="text-xs font-semibold truncate opacity-90">{item.name}</span>
-                            <span className="text-lg font-bold">{stockPercent}%</span>
+            <div className="flex-1 overflow-y-auto max-h-[350px] rounded-lg custom-scrollbar">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                    {(!data || data.length === 0) && (
+                        <div className="col-span-full flex items-center justify-center text-secondary text-sm py-8 opacity-60">
+                            No heatmap data available yet.
                         </div>
-                    );
-                })}
+                    )}
+                    {data.map((item, index) => {
+                        const stockPercent = Math.min(100, item.stock_percentage || Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100));
+
+                        return (
+                            <div
+                                key={index}
+                                className={`
+                                    rounded-lg p-2.5 flex flex-col justify-between text-white shadow-sm cursor-pointer
+                                    transition-all hover:scale-105 hover:z-10 hover:shadow-lg min-h-[70px]
+                                    ${getCellColor(stockPercent)}
+                                `}
+                                title={`${item.name}: ${item.current_stock} units (${stockPercent}%)`}
+                            >
+                                <span className="text-[10px] font-semibold truncate opacity-90 leading-tight">{item.name}</span>
+                                <div className="flex items-end justify-between mt-1">
+                                    <span className="text-lg font-bold leading-none">{stockPercent}%</span>
+                                    <span className="text-[9px] opacity-70">{item.current_stock}u</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </Card>
     );

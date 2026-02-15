@@ -11,10 +11,17 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.includes('excel') || file.mimetype.includes('spreadsheetml')) {
+    const isMimeValid = file.mimetype.includes('excel') ||
+        file.mimetype.includes('spreadsheetml') ||
+        file.mimetype.includes('csv') ||
+        file.mimetype === 'text/csv';
+
+    const isExtValid = /\.(xlsx|xls|xlsm|csv)$/i.test(file.originalname);
+
+    if (isMimeValid || isExtValid) {
         cb(null, true);
     } else {
-        cb(new Error('Please upload only Excel files.'), false);
+        cb(new Error('Please upload only Excel (.xlsx, .xls, .xlsm) or CSV files.'), false);
     }
 };
 

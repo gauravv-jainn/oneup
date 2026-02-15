@@ -6,7 +6,7 @@ import api from '../../services/api';
 import { Search, Bell, HelpCircle, Sun, Moon, User, Menu, AlertTriangle, Package } from 'lucide-react';
 import Button from '../common/Button';
 
-const Header = ({ toggleSidebar }) => {
+const Header = ({ toggleSidebar, isCollapsed }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
@@ -63,7 +63,7 @@ const Header = ({ toggleSidebar }) => {
     };
 
     return (
-        <header className="h-16 fixed top-0 right-0 left-0 md:left-[260px] z-30 px-4 md:px-8 flex items-center justify-between backdrop-blur-md bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(10,10,10,0.8)] border-b border-default transition-all duration-300">
+        <header className={`h-16 fixed top-0 right-0 left-0 transition-all duration-300 ease-in-out z-30 px-4 md:px-8 flex items-center justify-between backdrop-blur-md bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(10,10,10,0.8)] border-b border-default ${isCollapsed ? 'md:left-[80px]' : 'md:left-[260px]'}`}>
             {/* Left: Title & Toggle */}
             <div className="flex items-center gap-4">
                 <button
@@ -87,7 +87,7 @@ const Header = ({ toggleSidebar }) => {
                     <input
                         type="text"
                         placeholder="Search components..."
-                        className="pl-10 pr-4 py-2 w-32 md:w-48 rounded-full bg-card border border-default text-sm focus:w-40 md:focus:w-64 transition-all duration-300 outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="pl-12 pr-4 py-2 w-32 md:w-48 rounded-full bg-card border border-default text-sm focus:w-40 md:focus:w-64 transition-all duration-300 outline-none focus:ring-2 focus:ring-blue-500/50"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={handleSearchKeyDown}

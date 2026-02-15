@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Search, Filter, Download, Edit, Trash2, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Search, Filter, Download, Edit, Trash2, Package, AlertTriangle, CheckCircle, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -17,7 +18,7 @@ const Components = () => {
     const [statusFilter, setStatusFilter] = useState('all'); // all, low, safe
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
-        name: '', part_number: '', current_stock: 0, monthly_required_quantity: 0
+        name: '', part_number: '', current_stock: 0, monthly_required_quantity: 0, estimated_arrival_days: ''
     });
     const [editingId, setEditingId] = useState(null);
 
@@ -54,7 +55,7 @@ const Components = () => {
                 toast.success('New component added to inventory');
             }
             setShowModal(false);
-            setFormData({ name: '', part_number: '', current_stock: 0, monthly_required_quantity: 0 });
+            setFormData({ name: '', part_number: '', current_stock: 0, monthly_required_quantity: 0, estimated_arrival_days: '' });
             setEditingId(null);
             fetchComponents();
         } catch (error) {
@@ -75,7 +76,7 @@ const Components = () => {
     };
 
     const openEdit = (comp) => {
-        setFormData(comp);
+        setFormData({ ...comp, estimated_arrival_days: comp.estimated_arrival_days || '' });
         setEditingId(comp.id);
         setShowModal(true);
     };
@@ -131,7 +132,10 @@ const Components = () => {
                     }}>
                         <Download size={18} /> Export
                     </Button>
-                    <Button onClick={() => { setShowModal(true); setEditingId(null); setFormData({ name: '', part_number: '', current_stock: 0, monthly_required_quantity: 0 }); }} className="gap-2">
+                    <Button variant="secondary" className="gap-2" onClick={() => window.location.href = '/import-export'}>
+                        <Upload size={18} /> Bulk Upload
+                    </Button>
+                    <Button onClick={() => { setShowModal(true); setEditingId(null); setFormData({ name: '', part_number: '', current_stock: 0, monthly_required_quantity: 0, estimated_arrival_days: '' }); }} className="gap-2">
                         <Plus size={18} /> Add Component
                     </Button>
                 </div>
@@ -144,7 +148,7 @@ const Components = () => {
                     <input
                         type="text"
                         placeholder="Search by name or part number..."
-                        className="input pl-10 w-full"
+                        className="input pl-11 w-full"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -183,6 +187,7 @@ const Components = () => {
                                 <th className="px-6 py-4">Component Details</th>
                                 <th className="px-6 py-4">Part Number</th>
                                 <th className="px-6 py-4">Stock Level</th>
+                                <th className="px-6 py-4">ETA (days)</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -190,7 +195,7 @@ const Components = () => {
                         <tbody className="divide-y divide-default">
                             {filteredComponents.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center text-secondary">
+                                    <td colSpan="6" className="px-6 py-12 text-center text-secondary">
                                         <div className="flex flex-col items-center justify-center">
                                             <Package size={48} className="opacity-20 mb-4" />
                                             <p className="text-lg font-medium">No components found</p>
@@ -225,17 +230,22 @@ const Components = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
+                                                <span className="text-sm text-primary font-mono">
+                                                    {comp.estimated_arrival_days ? `${comp.estimated_arrival_days}d` : '—'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 <Badge variant={status.variant} className="gap-1.5 pl-1.5 pr-2.5">
                                                     {StatusIcon && <StatusIcon size={12} />}
                                                     {status.label}
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="sm" className="p-2 h-8 w-8 hover:bg-blue-50 hover:text-blue-600" onClick={() => openEdit(comp)}>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="ghost" size="sm" className="p-2 h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => openEdit(comp)}>
                                                         <Edit size={16} />
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" className="p-2 h-8 w-8 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(comp.id)}>
+                                                    <Button variant="ghost" size="sm" className="p-2 h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => handleDelete(comp.id)}>
                                                         <Trash2 size={16} />
                                                     </Button>
                                                 </div>
@@ -293,6 +303,17 @@ const Components = () => {
                                 value={formData.monthly_required_quantity} onChange={e => setFormData({ ...formData, monthly_required_quantity: parseInt(e.target.value) })}
                             />
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-secondary">Est. Arrival Days (optional)</label>
+                        <input
+                            type="number" min="1"
+                            className="input w-full"
+                            placeholder="e.g. 7"
+                            value={formData.estimated_arrival_days} onChange={e => setFormData({ ...formData, estimated_arrival_days: e.target.value ? parseInt(e.target.value) : '' })}
+                        />
+                        <p className="text-xs text-muted">Used for delivery date estimation in order planning</p>
                     </div>
 
                     <div className="pt-4 flex justify-end gap-3">

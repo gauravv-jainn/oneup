@@ -1,28 +1,32 @@
 const db = require('./config/db');
+require('dotenv').config();
 
-async function checkSchema() {
+const checkSchema = async () => {
     try {
-        console.log("Checking procurement_triggers columns:");
-        const trig = await db.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'procurement_triggers';
-        `);
-        console.table(trig.rows);
+        console.log("--- CHECKING DB SCHEMA ---");
 
-        console.log("Checking production_entries columns:");
-        const prod = await db.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'production_entries';
+        // 1. List all tables
+        const tablesRes = await db.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
         `);
-        console.table(prod.rows);
+        console.log("TABLES:", tablesRes.rows.map(r => r.table_name).join(', '));
+
+        // 2. Check consumption_history columns
+        console.log(`\nTABLE: consumption_history`);
+        const res = await db.query(`
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = 'consumption_history'
+        `);
+        console.table(res.rows);
 
     } catch (err) {
         console.error(err);
     } finally {
         process.exit();
     }
-}
+};
 
 checkSchema();

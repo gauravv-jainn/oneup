@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 // Create Component
 exports.createComponent = async (req, res) => {
-    const { name, part_number, current_stock, monthly_required_quantity } = req.body;
+    const { name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days } = req.body;
 
     if (!name || !part_number || current_stock === undefined || monthly_required_quantity === undefined) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -14,8 +14,8 @@ exports.createComponent = async (req, res) => {
 
     try {
         const result = await db.query(
-            'INSERT INTO components (name, part_number, current_stock, monthly_required_quantity) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, part_number, current_stock, monthly_required_quantity]
+            'INSERT INTO components (name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -56,16 +56,12 @@ exports.getComponentById = async (req, res) => {
 // Update Component
 exports.updateComponent = async (req, res) => {
     const { id } = req.params;
-    const { name, part_number, current_stock, monthly_required_quantity } = req.body;
-
-    // Build update query dynamically
-    // For simplicity in this hackathon, assume all fields sent or do full update
-    // But let's verify inputs
+    const { name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days } = req.body;
 
     try {
         const result = await db.query(
-            'UPDATE components SET name = $1, part_number = $2, current_stock = $3, monthly_required_quantity = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *',
-            [name, part_number, current_stock, monthly_required_quantity, id]
+            'UPDATE components SET name = $1, part_number = $2, current_stock = $3, monthly_required_quantity = $4, estimated_arrival_days = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
+            [name, part_number, current_stock, monthly_required_quantity, estimated_arrival_days || null, id]
         );
 
         if (result.rows.length === 0) {

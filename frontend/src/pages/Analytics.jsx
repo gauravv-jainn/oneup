@@ -1,71 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Treemap } from 'recharts';
-import { Activity, TrendingUp, BarChart2, Grid } from 'lucide-react';
 import Card from '../components/common/Card';
+import Loader from '../components/common/Loader';
+import { toast } from 'react-toastify';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Treemap, PieChart, Pie, Cell, Legend } from 'recharts';
+import { TrendingDown, Calendar, Clock, Download } from 'lucide-react';
 
-const CustomizedContent = (props) => {
-    const { depth, x, y, width, height, name } = props;
+const RANGE_OPTIONS = [
+    { label: 'Last 7 Days', value: '7d' },
+    { label: 'Last 30 Days', value: '30d' },
+    { label: 'Last 3 Months', value: '90d' },
+];
 
-    // Skip root and intermediate nodes (depth 0 = root, depth 1 = category)
-    if (!depth || depth < 2) return null;
-
-    // Read data props directly from props (Recharts flattens them)
-    const status = props.status || '';
-    const stockPercentage = props.stock_percentage != null ? props.stock_percentage : '';
-
-    // Determine color based on status
-    let fillColor = '#94a3b8'; // default slate-400
-    if (status === 'safe') fillColor = '#10b981';
-    else if (status === 'warning') fillColor = '#f59e0b';
-    else if (status === 'critical') fillColor = '#ef4444';
-
-    return (
-        <g>
-            <rect
-                x={x}
-                y={y}
-                width={width}
-                height={height}
-                style={{
-                    fill: fillColor,
-                    stroke: '#fff',
-                    strokeWidth: 2,
-                    strokeOpacity: 1,
-                }}
-            />
-            {width > 30 && height > 30 && (
-                <>
-                    <text x={x + width / 2} y={y + height / 2 - 5} textAnchor="middle" fill="#fff" fontSize={12} fontWeight="bold">
-                        {name && name.length > 10 ? name.substring(0, 10) + '...' : (name || '')}
-                    </text>
-                    <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="rgba(255,255,255,0.9)" fontSize={10}>
-                        {stockPercentage}%
-                    </text>
-                </>
-            )}
-        </g>
-    );
-};
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1'];
 
 const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
-        const data = payload[0]?.payload;
-        // Skip root tooltip or missing data
-        if (!data || !data.part_number) return null;
-
-        const status = data.status || 'unknown';
         return (
-            <div className="bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg text-sm">
-                <p className="font-bold text-primary mb-1">{data.name}</p>
-                <p className="text-secondary">Part #: <span className="font-mono">{data.part_number}</span></p>
-                <p className="text-secondary">Stock: <span className="font-mono">{data.current_stock} / {data.monthly_required_quantity}</span></p>
-                <p className="text-secondary">Consumed: <span className="font-mono">{data.total_consumed}</span></p>
-                <div className={`mt-2 font-semibold ${status === 'safe' ? 'text-green-600' :
-                    status === 'warning' ? 'text-amber-600' : 'text-red-600'
-                    }`}>
-                    Status: {status.toUpperCase()} ({data.stock_percentage || 0}%)
-                </div>
+            <div className="bg-white dark:bg-slate-800 border border-default rounded-lg p-3 shadow-xl text-xs">
+                <p className="font-bold text-primary">{payload[0].name || payload[0].payload?.name}</p>
+                <p className="text-blue-500 font-mono">{payload[0].value?.toLocaleString()}</p>
             </div>
         );
     }
@@ -73,167 +27,291 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 const Analytics = () => {
-    const [trendData, setTrendData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [range, setRange] = useState('30d');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
+    const [showCustom, setShowCustom] = useState(false);
+    const [consumptionTrend, setConsumptionTrend] = useState([]);
     const [topConsumed, setTopConsumed] = useState([]);
-    const [summary, setSummary] = useState([]);
+    const [consumptionSummary, setConsumptionSummary] = useState([]);
     const [heatmapData, setHeatmapData] = useState([]);
+    const [hoveredNode, setHoveredNode] = useState(null);
+
+    const fetchData = useCallback(async () => {
+        try {
+            let rangeParam = `?range=${range}`;
+            if (range === 'custom' && customStart && customEnd) {
+                rangeParam = `?range=custom&start=${customStart}&end=${customEnd}`;
+            }
+
+            const [trendRes, topRes, summaryRes, heatRes] = await Promise.all([
+                api.get(`/analytics/consumption-trend${rangeParam}`),
+                api.get(`/analytics/top-consumed${rangeParam}`),
+                api.get(`/analytics/consumption-summary${rangeParam}`),
+                api.get(`/analytics/heatmap-data${rangeParam}`)
+            ]);
+
+            setConsumptionTrend(trendRes.data || []);
+            setTopConsumed(topRes.data || []);
+            setConsumptionSummary(summaryRes.data || []);
+            setHeatmapData(heatRes.data || []);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to load analytics");
+        } finally {
+            setLoading(false);
+        }
+    }, [range, customStart, customEnd]);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [trendRes, topRes, summaryRes, heatmapRes] = await Promise.all([
-                    api.get('/analytics/consumption-trend'),
-                    api.get('/analytics/top-consumed'),
-                    api.get('/analytics/consumption-summary'),
-                    api.get('/analytics/heatmap-data')
-                ]);
-
-                const trendDataArray = Array.isArray(trendRes.data) ? trendRes.data : [];
-                const formattedTrend = trendDataArray.map(d => ({
-                    ...d,
-                    date: new Date(d.date).toLocaleDateString()
-                }));
-
-                setTrendData(formattedTrend);
-                setTopConsumed(Array.isArray(topRes.data) ? topRes.data : []);
-                setSummary(Array.isArray(summaryRes.data) ? summaryRes.data : []);
-
-                // Format for Treemap: Recharts requires a root node
-                const heatmapRaw = Array.isArray(heatmapRes.data) ? heatmapRes.data : [];
-                const formattedHeatmap = [{
-                    name: 'Inventory',
-                    children: heatmapRaw.map(item => ({
-                        ...item,
-                        size: (item.total_consumed && item.total_consumed > 0) ? parseInt(item.total_consumed) : 1
-                    }))
-                }];
-                setHeatmapData(formattedHeatmap);
-
-            } catch (error) {
-                console.error('Analytics fetch error:', error);
-            }
-        };
-
         fetchData();
-    }, []);
+    }, [fetchData]);
+
+    const selectRange = (val) => {
+        if (val === 'custom') {
+            setShowCustom(true);
+            return;
+        }
+        setShowCustom(false);
+        setRange(val);
+    };
+
+    const applyCustomRange = () => {
+        if (customStart && customEnd) {
+            setRange('custom');
+        } else {
+            toast.warn('Select both start and end dates');
+        }
+    };
+
+    if (loading) return <Loader fullScreen />;
+
+    const trendChartData = consumptionTrend.map(item => ({
+        date: new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        consumed: parseInt(item.total_consumed)
+    }));
+
+    const barData = topConsumed.map(item => ({
+        name: item.name.length > 12 ? item.name.slice(0, 12) + '…' : item.name,
+        fullName: item.name,
+        total_consumed: parseInt(item.total_consumed)
+    }));
+
+    // Prepare heatmap data for treemap
+    const treemapData = heatmapData.map(item => ({
+        name: item.name,
+        size: Math.max(parseInt(item.total_consumed) || 1, 1),
+        stock_percentage: Math.min(100, item.stock_percentage),
+        status: item.status,
+        fill: item.status === 'critical' ? '#ef4444' : item.status === 'warning' ? '#f59e0b' : '#10b981'
+    }));
 
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="space-y-6 animate-fade-in">
+            {/* Header + Range Selector */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-primary">Analytics Dashboard</h1>
-                    <p className="text-secondary mt-1">Deep dive into consumption patterns and inventory health</p>
+                    <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
+                        <TrendingDown className="text-blue-500" /> Consumption Analytics
+                    </h1>
+                    <p className="text-secondary mt-1">Deep-dive into component usage and inventory trends</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                        {RANGE_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => selectRange(opt.value)}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${range === opt.value && !showCustom
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => selectRange('custom')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1 ${showCustom || range === 'custom'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
+                                }`}
+                        >
+                            <Calendar size={12} /> Custom
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Heatmap Section */}
-            <Card>
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 bg-purple-500/10 rounded-lg text-purple-600">
-                            <Grid size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-primary">Inventory Heatmap</h2>
+            {/* Custom Range Picker */}
+            {showCustom && (
+                <Card className="flex flex-wrap items-end gap-4 p-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-secondary">Start Date</label>
+                        <input type="date" className="input w-auto" value={customStart} onChange={e => setCustomStart(e.target.value)} />
                     </div>
-                    <div className="flex space-x-4 text-sm bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
-                        <div className="flex items-center"><span className="w-3 h-3 bg-green-500 rounded-full mr-2 shadow-sm shadow-green-500/50"></span> Safe</div>
-                        <div className="flex items-center"><span className="w-3 h-3 bg-amber-500 rounded-full mr-2 shadow-sm shadow-amber-500/50"></span> Warning</div>
-                        <div className="flex items-center"><span className="w-3 h-3 bg-red-500 rounded-full mr-2 shadow-sm shadow-red-500/50"></span> Critical</div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-secondary">End Date</label>
+                        <input type="date" className="input w-auto" value={customEnd} onChange={e => setCustomEnd(e.target.value)} />
                     </div>
-                </div>
-                <div className="h-[400px] w-full rounded-xl overflow-hidden border border-default">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <Treemap
-                            data={heatmapData}
-                            dataKey="size"
-                            aspectRatio={4 / 3}
-                            stroke="#fff"
-                            fill="#8884d8"
-                            content={<CustomizedContent />}
-                        >
+                    <button onClick={applyCustomRange} className="btn btn-primary px-4 py-2 text-sm">Apply Range</button>
+                </Card>
+            )}
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Consumption Trend */}
+                <Card className="p-6">
+                    <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                        <Clock size={18} className="text-blue-500" /> Consumption Trend
+                    </h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={trendChartData}>
+                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
                             <Tooltip content={<CustomTooltip />} />
-                        </Treemap>
+                            <Line type="monotone" dataKey="consumed" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+                        </LineChart>
                     </ResponsiveContainer>
+                </Card>
+
+                {/* Top Consumed */}
+                <Card className="p-6">
+                    <h3 className="text-lg font-bold text-primary mb-4">Top Consumed Components</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={barData} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} />
+                            <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10 }} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Bar dataKey="total_consumed" radius={[0, 6, 6, 0]}>
+                                {barData.map((_, idx) => (
+                                    <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </Card>
+            </div>
+
+            {/* Inventory Heatmap Treemap */}
+            <Card className="p-6">
+                <h3 className="text-lg font-bold text-primary mb-4">Inventory Health Map</h3>
+                <div className="flex gap-4 mb-4 text-xs">
+                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-green-500 rounded"></span> Healthy (≥50%)</div>
+                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-yellow-500 rounded"></span> Low (20-50%)</div>
+                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-500 rounded"></span> Critical (&lt;20%)</div>
                 </div>
-                <p className="text-xs text-secondary mt-3 text-center">
-                    Block size represents total consumption volume. Color indicates current stock health.
-                </p>
+                <div className="flex flex-col gap-4">
+                    {/* Heatmap Visualization */}
+                    {treemapData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={350}>
+                            <Treemap
+                                data={treemapData}
+                                dataKey="size"
+                                nameKey="name"
+                                content={(props) => {
+                                    const { x, y, width, height, name, fill, stock_percentage, status } = props;
+                                    if (width < 30 || height < 25) return null;
+                                    return (
+                                        <g
+                                            onMouseEnter={() => setHoveredNode({ name, stock_percentage, status, fill, ...props })}
+                                            onMouseLeave={() => setHoveredNode(null)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            <rect
+                                                x={x} y={y} width={width} height={height}
+                                                fill={fill}
+                                                stroke="#1e293b"
+                                                strokeWidth={2}
+                                                rx={4}
+                                                className="transition-all duration-200 hover:opacity-80"
+                                            />
+                                            {width > 60 && height > 35 && (
+                                                <>
+                                                    <text x={x + width / 2} y={y + height / 2 - 6} textAnchor="middle" fill="#fff" fontSize={11} fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                                        {name?.length > 10 ? name.slice(0, 10) + '…' : name}
+                                                    </text>
+                                                    <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="#fff" fontSize={10} fontWeight="normal" fillOpacity={0.9}>
+                                                        {stock_percentage}%
+                                                    </text>
+                                                </>
+                                            )}
+                                        </g>
+                                    );
+                                }}
+                            >
+                                <Tooltip content={<CustomTooltip />} />
+                            </Treemap>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="text-center text-muted py-12">No heatmap data available</div>
+                    )}
+
+                    {/* Details Panel (Below) */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-default min-h-[80px] flex items-center justify-center transition-all">
+                        {hoveredNode ? (
+                            <div className="flex items-center gap-8 w-full justify-around animate-fade-in">
+                                <div className="text-left">
+                                    <p className="text-xs text-secondary font-medium uppercase tracking-wider">Component</p>
+                                    <h4 className="text-xl font-bold text-primary">{hoveredNode.name}</h4>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-xs text-secondary font-medium uppercase tracking-wider">Stock Health</p>
+                                    <div className={`text-2xl font-bold ${hoveredNode.status === 'critical' ? 'text-red-500' : hoveredNode.status === 'warning' ? 'text-amber-500' : 'text-green-500'}`}>
+                                        {hoveredNode.stock_percentage}%
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs text-secondary font-medium uppercase tracking-wider">Consumption Impact</p>
+                                    <p className="text-lg font-mono text-primary">{hoveredNode.value?.toLocaleString() || hoveredNode.size?.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-secondary text-sm flex items-center gap-2">
+                                <TrendingDown size={16} />
+                                Hover over any block above to see detailed metrics
+                            </div>
+                        )}
+                    </div>
+                </div>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card>
-                    <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
-                            <TrendingUp size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-primary">Consumption Trend (30 Days)</h2>
-                    </div>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={trendData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
-                                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} dx={-10} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                <Line type="monotone" dataKey="total_consumed" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} name="Units Consumed" />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-
-                <Card>
-                    <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 bg-green-500/10 rounded-lg text-green-600">
-                            <BarChart2 size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-primary">Top 10 Most Consumed</h2>
-                    </div>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={topConsumed} layout="vertical" margin={{ left: 40 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Bar dataKey="total_consumed" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} name="Total Consumed" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-            </div>
-
-            <Card>
-                <div className="flex items-center gap-2 mb-6">
-                    <div className="p-2 bg-slate-500/10 rounded-lg text-slate-600">
-                        <Activity size={20} />
-                    </div>
-                    <h2 className="text-lg font-bold text-primary">Detailed Consumption Summary</h2>
+            {/* Detailed Summary Table */}
+            <Card className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-primary">Detailed Consumption Summary</h3>
+                    <span className="text-xs text-muted">{consumptionSummary.length} components</span>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-secondary">
-                            <tr>
-                                <th className="px-6 py-4 rounded-tl-lg">Component Name</th>
-                                <th className="px-6 py-4">Part Number</th>
-                                <th className="px-6 py-4 rounded-tr-lg">Total Consumed</th>
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-default">
+                                <th className="text-left pb-3 text-secondary font-medium">Component</th>
+                                <th className="text-left pb-3 text-secondary font-medium">Part Number</th>
+                                <th className="text-right pb-3 text-secondary font-medium">Total Consumed</th>
+                                <th className="text-right pb-3 text-secondary font-medium">Bar</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-default">
-                            {summary.map((item, index) => (
-                                <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-primary">{item.name}</td>
-                                    <td className="px-6 py-4 text-secondary font-mono text-sm">{item.part_number}</td>
-                                    <td className="px-6 py-4 font-mono text-blue-600 dark:text-blue-400 font-bold">{item.total_consumed}</td>
-                                </tr>
-                            ))}
-                            {summary.length === 0 && (
-                                <tr>
-                                    <td colSpan="3" className="text-center py-8 text-secondary italic">No consumption data available.</td>
-                                </tr>
-                            )}
+                        <tbody>
+                            {consumptionSummary.slice(0, 20).map((item, idx) => {
+                                const maxConsumed = Math.max(...consumptionSummary.map(i => parseInt(i.total_consumed)));
+                                const pct = (parseInt(item.total_consumed) / maxConsumed) * 100;
+                                return (
+                                    <tr key={idx} className="border-b border-default/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="py-3 text-primary font-medium">{item.name}</td>
+                                        <td className="py-3 text-secondary font-mono text-xs">{item.part_number}</td>
+                                        <td className="py-3 text-right text-primary font-mono font-bold">{parseInt(item.total_consumed).toLocaleString()}</td>
+                                        <td className="py-3 w-32">
+                                            <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

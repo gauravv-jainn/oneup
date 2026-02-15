@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import api from '../services/api';
-import { FileSpreadsheet, Download, Upload, CheckCircle, AlertCircle, FileUp, FileDown, Database } from 'lucide-react';
+import { FileSpreadsheet, Download, Upload, CheckCircle, AlertCircle, FileUp, FileDown, Database, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -12,10 +12,24 @@ const ImportExport = () => {
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef(null);
 
+    // Export format dialog
+    const [showFormatDialog, setShowFormatDialog] = useState(false);
+    const [exportType, setExportType] = useState(null);
+
+    const allowedExtensions = ['.xlsx', '.xls', '.xlsm', '.csv'];
+
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-            setResult(null);
+            const selectedFile = e.target.files[0];
+            const ext = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+            if (allowedExtensions.includes(ext)) {
+                setFile(selectedFile);
+                setResult(null);
+            } else {
+                setFile(null);
+                setResult({ success: false, error: 'Invalid file type. Please upload an Excel (.xlsx, .xls) or CSV (.csv) file.' });
+                toast.error('Invalid file type.');
+            }
         }
     };
 
@@ -35,12 +49,13 @@ const ImportExport = () => {
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const droppedFile = e.dataTransfer.files[0];
-            if (droppedFile.name.endsWith('.xlsx') || droppedFile.name.endsWith('.xls')) {
+            const ext = droppedFile.name.substring(droppedFile.name.lastIndexOf('.')).toLowerCase();
+            if (allowedExtensions.includes(ext)) {
                 setFile(droppedFile);
-                setResult(null);
+                setResult(null); // Clear previous result
             } else {
-                setResult({ success: false, error: 'Invalid file type. Please upload an Excel file.' });
-                toast.error('Invalid file type. Please upload an Excel file.');
+                setResult({ success: false, error: 'Invalid file type. Please upload an Excel (.xlsx, .xls, .xlsm) or CSV (.csv) file.' });
+                toast.error('Invalid file type.');
             }
         }
     };
@@ -68,20 +83,49 @@ const ImportExport = () => {
         }
     };
 
-    const handleDownload = async (type) => {
+    const openExportDialog = (type) => {
+        setExportType(type);
+        setShowFormatDialog(true);
+    };
+
+    const handleDownload = async (type, format = 'xlsx') => {
         try {
-            const res = await api.get(`/excel/export/${type}`, { responseType: 'blob' });
-            const url = window.URL.createObjectURL(new Blob([res.data]));
+            console.log(`Starting download for ${type} in ${format}...`);
+            const res = await api.get(`/excel/export/${type}?format=${format}`, {
+                responseType: 'blob'
+            });
+            console.log("Download response received:", res.status, res.headers['content-type']);
+
+            const ext = format === 'csv' ? 'csv' : 'xlsx';
+            const mimeType = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+            const blob = new Blob([res.data], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `${type}_report.xlsx`);
+            link.setAttribute('download', `${type}_report.${ext}`);
             document.body.appendChild(link);
             link.click();
             link.remove();
-            toast.success(`${type} report downloaded`);
+            window.URL.revokeObjectURL(url);
+            toast.success(`${type} report downloaded as .${ext}`);
         } catch (error) {
-            console.error('Download failed', error);
-            toast.error('Download failed');
+            console.error('Download failed detailed:', error);
+            if (error.response) {
+                // The request was made and the server responded with a status code
+                // that falls out of the range of 2xx
+                // Note: response data is a blob, need to read it
+                const reader = new FileReader();
+                reader.onload = () => {
+                    toast.error(`Server Error: ${reader.result}`);
+                    console.error('Server Error Blob:', reader.result);
+                };
+                reader.readAsText(error.response.data);
+            } else if (error.request) {
+                toast.error('Network Error: Server unreachable');
+            } else {
+                toast.error(`Client Error: ${error.message}`);
+            }
         }
     };
 
@@ -110,7 +154,7 @@ const ImportExport = () => {
                     <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg p-4 mb-6 text-sm">
                         <p className="text-blue-800 dark:text-blue-300 font-semibold mb-2">Instructions:</p>
                         <ul className="list-disc list-inside text-blue-700 dark:text-blue-400 space-y-1">
-                            <li>Upload an Excel file (.xlsx)</li>
+                            <li>Upload an Excel file (.xlsx, .xls, .xlsm) or CSV (.csv)</li>
                             <li>Required Columns: <strong>Component Name, Part Number, Current Stock, Monthly Required Quantity</strong></li>
                         </ul>
                     </div>
@@ -127,16 +171,16 @@ const ImportExport = () => {
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept=".xlsx, .xls"
+                            accept=".xlsx,.xls,.xlsm,.csv"
                             onChange={handleFileChange}
                             className="hidden"
                         />
 
                         {file ? (
                             <div className="text-center">
-                                <FileSpreadsheet size={48} className="mx-auto text-green-500 mb-3" />
-                                <p className="font-bold text-primary">{file.name}</p>
-                                <p className="text-sm text-secondary">{(file.size / 1024).toFixed(2)} KB</p>
+                                <FileSpreadsheet size={48} className="mx-auto text-blue-500 mb-3" />
+                                <p className="text-lg font-bold text-primary">{file.name}</p>
+                                <p className="text-sm text-secondary">{(file.size / 1024).toFixed(1)} KB</p>
                                 <Button
                                     className="mt-4 bg-blue-600 hover:bg-blue-700 text-white mx-auto"
                                     onClick={(e) => { e.stopPropagation(); handleUpload(); }}
@@ -148,8 +192,8 @@ const ImportExport = () => {
                         ) : (
                             <div className="text-center text-secondary">
                                 <FileUp size={48} className="mx-auto mb-3 opacity-30" />
-                                <p className="font-medium text-lg">Drag & Drop Excel File</p>
-                                <p className="text-sm mt-1">or click to browse</p>
+                                <p className="text-lg font-medium">Drag & Drop or Click to Upload</p>
+                                <p className="text-sm mt-1">Supports .xlsx, .xls, .xlsm, .csv</p>
                             </div>
                         )}
                     </div>
@@ -196,7 +240,7 @@ const ImportExport = () => {
                     </div>
 
                     <div className="space-y-4 flex-1">
-                        <div className="group border border-default rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onClick={() => handleDownload('inventory')}>
+                        <div className="group border border-default rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onClick={() => openExportDialog('inventory')}>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
@@ -211,7 +255,7 @@ const ImportExport = () => {
                             </p>
                         </div>
 
-                        <div className="group border border-default rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onClick={() => handleDownload('consumption')}>
+                        <div className="group border border-default rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onClick={() => openExportDialog('consumption')}>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
@@ -225,13 +269,85 @@ const ImportExport = () => {
                                 Historical consumption data analysis including daily usage rates and trend metrics.
                             </p>
                         </div>
+
+                        <div className="group border border-default rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onClick={() => openExportDialog('repairs')}>
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                        <FileSpreadsheet size={20} />
+                                    </div>
+                                    <h3 className="font-bold text-primary group-hover:text-blue-600 transition-colors">Repairs Report (PCB Wise)</h3>
+                                </div>
+                                <FileDown size={18} className="text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            <p className="text-sm text-secondary ml-11">
+                                Detailed repair logs per PCB including defects, analysis, and technician handling.
+                            </p>
+                        </div>
+
+                        <div className="group border border-default rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onClick={() => openExportDialog('component-usage')}>
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                        <FileSpreadsheet size={20} />
+                                    </div>
+                                    <h3 className="font-bold text-primary group-hover:text-blue-600 transition-colors">Component Usage Report</h3>
+                                </div>
+                                <FileDown size={18} className="text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            <p className="text-sm text-secondary ml-11">
+                                Track which components were used in which PCB repairs and in what quantities.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs text-secondary text-center">
-                        Exports are generated in .xlsx format compatible with Microsoft Excel and Google Sheets.
+                        Exports available in .xlsx and .csv formats.
                     </div>
                 </Card>
             </div>
+
+            {/* Export Format Dialog */}
+            {showFormatDialog && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm" onClick={() => setShowFormatDialog(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-fade-up" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-primary">Choose Export Format</h3>
+                            <button onClick={() => setShowFormatDialog(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-secondary">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleDownload(exportType, 'xlsx')}
+                                className="w-full flex items-center gap-4 p-4 border border-default rounded-xl hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all group"
+                            >
+                                <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-lg group-hover:bg-green-500 group-hover:text-white transition-colors">
+                                    <FileSpreadsheet size={20} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-primary">.xlsx (Excel)</p>
+                                    <p className="text-xs text-secondary">Microsoft Excel format with formatting</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => handleDownload(exportType, 'csv')}
+                                className="w-full flex items-center gap-4 p-4 border border-default rounded-xl hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
+                            >
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                    <FileDown size={20} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-primary">.csv (Comma-Separated)</p>
+                                    <p className="text-xs text-secondary">Universal text format, lightweight</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

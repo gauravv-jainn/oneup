@@ -1,4 +1,5 @@
 const db = require('../config/db');
+console.log("--- analyticsController LOADED V2 ---");
 
 // Helper: parse date range from query params
 function getDateRange(query) {
@@ -29,12 +30,15 @@ exports.getDashboardStats = async (req, res) => {
             db.query("SELECT COUNT(*) FROM procurement_triggers WHERE status = 'pending'")
         ]);
 
+        const csCount = parseInt(criticalStock.rows[0].count);
+        console.log("Stats Check - Critical:", csCount, "Low:", parseInt(lowStock.rows[0].count));
+
         res.json({
             totalComponents: parseInt(components.rows[0].count),
             activePCBs: parseInt(pcbs.rows[0].count),
             dailyProduction: parseInt(production.rows[0].sum) || 0,
             lowStock: parseInt(lowStock.rows[0].count),
-            criticalStock: parseInt(criticalStock.rows[0].count),
+            criticalStock: csCount,
             pendingOrders: parseInt(triggers.rows[0].count)
         });
     } catch (err) {

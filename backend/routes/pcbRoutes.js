@@ -8,6 +8,8 @@ router.use(verifyToken);
 router.post('/', pcbController.createPCB);
 router.get('/', pcbController.getAllPCBs);
 router.get('/:id', pcbController.getPCBById);
+router.put('/:id', pcbController.updatePCB);
+router.delete('/:id', pcbController.deletePCB);
 router.post('/:id/components', pcbController.addComponentToPCB);
 router.delete('/:id/components/:componentId', pcbController.removeComponentFromPCB);
 
