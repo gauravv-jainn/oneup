@@ -21,6 +21,8 @@ const Procurement = () => {
 
     const fetchTriggers = async () => {
         try {
+            // Auto-create triggers for any newly critical components
+            await api.get('/procurement/sync-triggers');
             const res = await api.get('/procurement/triggers');
             setTriggers(res.data);
         } catch (error) {

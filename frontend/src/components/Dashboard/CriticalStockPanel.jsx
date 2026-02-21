@@ -2,12 +2,12 @@ import React from 'react';
 import Card from '../common/Card';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
 
-const CriticalStockPanel = ({ items }) => {
+const CriticalStockPanel = ({ items, className = '' }) => {
     const critical = items.filter(i => i.severity === 'critical' || (i.stock_percent !== undefined ? parseFloat(i.stock_percent) < 20 : i.current_stock < (i.monthly_required_quantity * 0.2)));
     const low = items.filter(i => i.severity === 'low' || (i.stock_percent !== undefined ? (parseFloat(i.stock_percent) >= 20 && parseFloat(i.stock_percent) < 50) : (i.current_stock >= (i.monthly_required_quantity * 0.2) && i.current_stock < (i.monthly_required_quantity * 0.5))));
 
     return (
-        <Card className="h-full border-red-500/10 bg-red-500/5 flex flex-col">
+        <Card className={`border-red-500/10 bg-red-500/5 flex flex-col ${className}`}>
             <div className="flex items-center gap-2 mb-4 shrink-0">
                 <AlertTriangle className="text-red-500" size={20} />
                 <h3 className="text-lg font-bold text-primary">Stock Alerts</h3>
@@ -26,7 +26,7 @@ const CriticalStockPanel = ({ items }) => {
                             <span className="text-xs font-bold text-red-500 uppercase tracking-wider">Critical (&lt;20%)</span>
                         </div>
                         <div className="space-y-3">
-                            {critical.slice(0, 4).map((item, index) => {
+                            {critical.map((item, index) => {
                                 const stockPercent = Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100);
                                 return (
                                     <div key={index} className="group">
@@ -60,7 +60,7 @@ const CriticalStockPanel = ({ items }) => {
                             <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Low Stock (20-50%)</span>
                         </div>
                         <div className="space-y-3">
-                            {low.slice(0, 4).map((item, index) => {
+                            {low.map((item, index) => {
                                 const stockPercent = Math.round((item.current_stock / Math.max(item.monthly_required_quantity, 1)) * 100);
                                 return (
                                     <div key={index} className="group">

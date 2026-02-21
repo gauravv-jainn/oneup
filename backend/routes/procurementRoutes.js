@@ -5,6 +5,7 @@ const verifyToken = require('../middleware/authMiddleware');
 
 router.use(verifyToken);
 
+router.get('/sync-triggers', procurementController.syncTriggers);
 router.get('/triggers', procurementController.getTriggers);
 router.put('/triggers/:id', procurementController.updateTriggerStatus);
 

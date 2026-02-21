@@ -123,12 +123,15 @@ const Dashboard = () => {
             <KPIStats stats={data.stats} />
 
             {/* Middle Section: Heatmap & Critical Stock */}
+            {/* Middle Section: Heatmap & Critical Stock */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                     <HeatmapPanel data={data.heatmapData} />
                 </div>
-                <div className="lg:col-span-1">
-                    <CriticalStockPanel items={data.criticalStock} />
+                <div className="lg:col-span-1 lg:relative">
+                    <div className="lg:absolute lg:inset-0">
+                        <CriticalStockPanel items={data.criticalStock} className="h-full" />
+                    </div>
                 </div>
             </div>
 
