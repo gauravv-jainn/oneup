@@ -198,6 +198,7 @@ exports.importComponents = async (req, res) => {
             summary.message.push(`Processed ${repairsProcessed} repair records from PCB sheets.`);
         }
 
+         // Fix: define pcbSheetName early
         const pcbSheetNameRaw = req.body?.pcbSheetName;
         const pcbSheetName = pcbSheetNameRaw || process.env.PCB_SHEET_NAME || "PCB";
         // 3. Fallback: If neither sheet found, try Standard Import (First Sheet)
